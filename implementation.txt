@@ -1,0 +1,46 @@
+=========================================================
+SCORPION ACADEMY ERP & CRM - IMPLEMENTATION & RUNBOOK
+=========================================================
+
+1. SYSTEM PREREQUISITES
+-----------------------
+* Python 3.11 or higher installed and added to system PATH.
+* Windows PowerShell or standard terminal.
+* Active MongoDB Atlas Cluster with Database User credentials.
+
+2. ENVIRONMENT SETUP
+--------------------
+Step 1: Open terminal in project root.
+Step 2: Create a virtual environment:
+        > python -m venv .venv
+Step 3: Activate the virtual environment:
+        > .venv\Scripts\activate
+Step 4: Install required libraries:
+        > pip install -r requirements.txt
+
+3. SECURE CONFIGURATION (.env)
+------------------------------
+Create a `.env` file in the root directory containing:
+DEBUG=True
+SECRET_KEY=your_secure_random_string_here
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.../?retryWrites=true&w=majority
+MONGO_DB_NAME=CRM
+
+4. STARTING THE ENGINE
+----------------------
+Ensure your virtual environment is active, then run:
+> python manage.py runserver
+
+The server will boot up at http://127.0.0.1:8000/
+
+5. CORE API ENDPOINTS (USAGE)
+-----------------------------
+All requests to protected routes require the following HTTP Header:
+Authorization: Bearer <your_jwt_token>
+
+* POST /api/auth/register-admin/ : Creates Super Admin account.
+* POST /api/auth/login/          : Returns JWT access token.
+* GET  /api/sports/              : Lists all active sports.
+* POST /api/sports/              : Creates a new sport (Requires Super Admin).
+* GET  /api/sports/<id>/progression/  : Lists ranking tiers for a sport.
+* POST /api/sports/<id>/progression/  : Adds a new ranking tier (Requires Super Admin).

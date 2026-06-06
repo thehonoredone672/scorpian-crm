@@ -1,0 +1,55 @@
+=========================================================
+SCORPION ACADEMY ERP & CRM - TECHNOLOGY STACK & ARCHITECTURE
+=========================================================
+
+1. CORE TECHNOLOGY STACK
+------------------------
+* Language: Python 3.12+
+* Web Framework: Django 5.0.4
+* API Framework: Django REST Framework (DRF) 3.15.1
+* Database: MongoDB Atlas (Cloud NoSQL)
+* Security/Auth: Custom Stateless JSON Web Tokens (JWT)
+
+2. PYTHON LIBRARIES & PACKAGES (requirements.txt)
+-------------------------------------------------
+* django: The core web server, routing, and HTTP request/response engine.
+* djangorestframework: Used for API View logic, payload parsing, and JSON rendering.
+* pymongo: The native Python driver to communicate directly with MongoDB.
+* python-dotenv: securely loads hidden variables from the .env file into memory.
+* certifi: Provides Mozilla's root certificates to ensure secure SSL/TLS connections to MongoDB Atlas on Windows.
+* pyjwt: Generates, signs, and decodes stateless JSON Web Tokens.
+* bcrypt: Industry-standard cryptographic hashing algorithm used to securely store passwords.
+
+3. ARCHITECTURAL PATTERN: MODULAR MONOLITH
+------------------------------------------
+Instead of microservices, we use a single codebase separated into strictly isolated business domains (Apps: accounts, branches, sports). They share a single PyMongo connection pool but do not tangle business logic.
+
+4. SYSTEM FLOW DIAGRAMS
+-----------------------
+
+A. THE REQUEST/RESPONSE LIFECYCLE
+[Client/Browser] 
+       │ (HTTP POST /api/sports/ {"name": "Karate"})
+       ▼
+[Django URLs] (Routes request to correct App)
+       │
+       ▼
+[Custom JWT Middleware] (Intercepts request, verifies token signature, checks RBAC permissions)
+       │
+       ▼
+[DRF APIView] (Validates incoming JSON payload format)
+       │
+       ▼
+[PyMongo Singleton] (Executes optimized NoSQL query)
+       │
+       ▼
+[MongoDB Atlas] (Stores document, returns ObjectId)
+
+
+B. STATELESS AUTHENTICATION FLOW
+1. User POSTs email/password to `/api/auth/login/`
+2. Backend queries `users` collection via PyMongo.
+3. Backend verifies password via `bcrypt.checkpw()`.
+4. Backend signs JWT via `pyjwt` with 24-hour expiration.
+5. Backend returns JWT to Client.
+6. Client stores JWT and attaches it as `Authorization: Bearer <token>` in all future requests.

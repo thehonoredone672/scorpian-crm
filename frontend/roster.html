@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Active Roster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-gray-900">
+
+    <script>
+        const token = localStorage.getItem('scorp_token');
+        if (!token) window.location.href = 'index.html';
+    </script>
+
+    <aside class="w-64 bg-[#111111] text-gray-400 flex flex-col shrink-0">
+        <div class="h-20 flex items-center px-6 border-b border-gray-800">
+            <div class="bg-white text-black p-1.5 rounded-lg mr-3">
+                <i class="ph ph-rocket-launch text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-white tracking-wide">Scorpion Academy</h1>
+                <p class="text-[10px] font-semibold tracking-widest uppercase">Management</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
+                <i class="ph ph-squares-four text-xl"></i>
+                <span class="text-sm font-medium">Overview</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
+                <i class="ph ph-users text-xl"></i>
+                <span class="text-sm font-medium">Enquiries</span>
+            </a>
+            <a href="roster.html" class="flex items-center gap-3 px-3 py-2.5 bg-white/10 text-white rounded-lg transition-colors">
+                <i class="ph-fill ph-list-dashes text-xl"></i>
+                <span class="text-sm font-medium">Active Roster</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-gray-800">
+            <button id="logoutBtn" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors w-full">
+                <i class="ph ph-sign-out text-xl"></i> Log Out
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
+            <div class="flex items-center gap-4">
+                <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="ph ph-student text-xl text-gray-500"></i> Active Roster
+                </h2>
+            </div>
+            <button class="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
+                + Add Student
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                
+                <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+                    <div class="relative max-w-md">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" placeholder="Search names or contact info..." 
+                            class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-black">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-white text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                                <th class="px-6 py-4">Student Profile</th>
+                                <th class="px-6 py-4">Contact</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody" class="divide-y divide-gray-50">
+                            <tr>
+                                <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">
+                                    <i class="ph ph-spinner animate-spin text-2xl mb-2"></i>
+                                    <p>Loading roster from MongoDB Atlas...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Logout Logic
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        });
+
+        // Fetch Live Student Data from Django Backend
+        async function fetchRoster() {
+            const tableBody = document.getElementById('studentTableBody');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/students/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const students = await response.json();
+                    tableBody.innerHTML = ''; // Clear loading state
+
+                    if (students.length === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">No active students found.</td></tr>`;
+                        return;
+                    }
+
+                    students.forEach(student => {
+                        // Generate the first letter avatar
+                        const initial = student.first_name.charAt(0).toUpperCase();
+                        
+                        const row = `
+                            <tr class="hover:bg-gray-50 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-4">
+                                        <div class="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-sm font-bold text-gray-900 border border-gray-200">
+                                            ${initial}
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-900">${student.first_name} ${student.last_name}</p>
+                                            <p class="text-[11px] text-gray-400 mt-0.5">ID: ${student._id.slice(-6)}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <p class="text-sm text-gray-600">${student.phone || 'N/A'}</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">${student.email || 'No email'}</p>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div> Active
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button class="p-1.5 text-gray-400 hover:text-black transition-colors rounded-md hover:bg-gray-100"><i class="ph ph-pencil-simple text-lg"></i></button>
+                                        <button class="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50"><i class="ph ph-trash text-lg"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+                } else {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-red-500">Failed to load data. Unauthorized.</td></tr>`;
+                }
+            } catch (err) {
+                console.error(err);
+                tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-red-500">Network Error: Is the Django server running?</td></tr>`;
+            }
+        }
+
+        fetchRoster();
+    </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Overview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-gray-900">
+
+    <script>
+        const token = localStorage.getItem('scorp_token');
+        if (!token) window.location.href = 'index.html';
+    </script>
+
+    <aside class="w-64 bg-[#111111] text-gray-400 flex flex-col transition-all duration-300">
+        <div class="h-20 flex items-center px-6 border-b border-gray-800">
+            <div class="bg-white text-black p-1.5 rounded-lg mr-3">
+                <i class="ph ph-rocket-launch text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-white tracking-wide">Scorpion Academy</h1>
+                <p class="text-[10px] font-semibold tracking-widest uppercase">Overview</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 bg-white/10 text-white rounded-lg transition-colors">
+                <i class="ph-fill ph-squares-four text-xl"></i>
+                <span class="text-sm font-medium">Overview</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
+                <i class="ph ph-users text-xl"></i>
+                <span class="text-sm font-medium">Enquiries</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
+                <i class="ph ph-list-dashes text-xl"></i>
+                <span class="text-sm font-medium">Active Roster</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-gray-800">
+            <button id="logoutBtn" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors w-full">
+                <i class="ph ph-sign-out text-xl"></i> Log Out
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
+            <div class="flex items-center gap-4">
+                <i class="ph ph-list text-xl text-gray-500 cursor-pointer hover:text-black"></i>
+                <h2 class="text-lg font-semibold text-gray-800">Overview</h2>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 text-sm text-gray-500 font-medium">
+                    <i class="ph ph-calendar-blank text-lg"></i>
+                    <span id="currentDate">May 3, 2026</span>
+                </div>
+                <div class="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600 border border-gray-300">
+                    A
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8">
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
+                    <div class="absolute top-6 right-6">
+                        <div class="bg-green-100 text-green-600 p-1 rounded-full"><i class="ph-fill ph-check-circle text-xl"></i></div>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 tracking-wider uppercase mb-2">Present Today</p>
+                    <h3 class="text-3xl font-bold text-gray-900">20</h3>
+                    <p class="text-xs font-medium text-gray-400 mt-1">out of 24</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
+                    <div class="absolute top-6 right-6">
+                        <div class="bg-red-100 text-red-500 p-1 rounded-full"><i class="ph-fill ph-x-circle text-xl"></i></div>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 tracking-wider uppercase mb-2">Absent Today</p>
+                    <h3 class="text-3xl font-bold text-gray-900">4</h3>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
+                    <div class="absolute top-6 right-6 text-gray-400">
+                        <i class="ph-fill ph-bank text-2xl"></i>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 tracking-wider uppercase mb-2">Fees Collected</p>
+                    <h3 class="text-3xl font-bold text-gray-900">₹3,600</h3>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
+                    <div class="absolute top-6 right-6 text-amber-500">
+                        <i class="ph-fill ph-warning-circle text-2xl"></i>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 tracking-wider uppercase mb-2">Fees Pending</p>
+                    <h3 class="text-3xl font-bold text-amber-500">₹450</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-base font-semibold text-gray-800">Attendance Trends (This Week)</h3>
+                    <div class="flex gap-4 text-xs font-medium text-gray-500">
+                        <div class="flex items-center gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-[#111111]"></div> Present</div>
+                        <div class="flex items-center gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-[#ffb6c1]"></div> Absent</div>
+                    </div>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        // Set dynamic date in header
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', options);
+
+        // Logout logic
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        });
+
+        // Initialize Chart.js exactly like the video (Stacked Bar Chart)
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                datasets: [
+                    {
+                        label: 'Present',
+                        data: [20, 19, 22, 20, 21],
+                        backgroundColor: '#111111', // Black
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Absent',
+                        data: [2, 3, 0, 4, 1],
+                        backgroundColor: '#ffb6c1', // Light Pink
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#111',
+                        padding: 10,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Inter', size: 13 },
+                        bodyFont: { family: 'Inter', size: 13 }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { family: 'Inter', size: 12 }, color: '#71717a' }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        max: 25,
+                        grid: { color: '#f4f4f5', drawBorder: false },
+                        ticks: { stepSize: 5, font: { family: 'Inter', size: 12 }, color: '#a1a1aa' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
