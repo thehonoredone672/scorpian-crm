@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Financial Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FAFAFA; color: #111111; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+        input:focus, select:focus { outline: none; border-color: #0A0A0A; box-shadow: 0 0 0 1px #0A0A0A; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black">
+
+    <script>
+        const token = localStorage.getItem('scorp_token');
+        if (!token) window.location.href = 'login.html';
+    </script>
+
+    <aside class="w-56 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-20">
+        <div class="py-5 px-5 flex items-center gap-2">
+            <div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black">
+                <i class="ph-fill ph-rocket-launch text-[10px]"></i>
+            </div>
+            <div class="leading-none">
+                <h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1>
+                <p class="text-[10px] text-gray-400 font-medium mt-0.5">CRM Architecture</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
+                <i class="ph ph-squares-four text-base"></i> Overview
+            </a>
+            <a href="roster.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
+                <i class="ph ph-users text-base"></i> Active Roster
+            </a>
+            <a href="schedule.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
+                <i class="ph ph-calendar-blank text-base"></i> Class Schedule
+            </a>
+            <a href="ledger.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium">
+                <i class="ph-fill ph-wallet text-base"></i> Financial Ledger
+            </a>
+        </nav>
+
+        <div class="p-4 flex flex-col gap-4">
+            <button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors text-left">
+                <i class="ph ph-sign-out text-base"></i> Sign out
+            </button>
+            <div class="pt-3 border-t border-white/10 px-2">
+                <p class="text-[10px] text-gray-500">
+                    Developed by <br>
+                    <a href="https://dexys.in" target="_blank" class="font-medium text-gray-400 hover:text-white transition-colors">Dexys IT Solutions</a>
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen relative z-10">
+        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md shrink-0">
+            <h2 class="font-medium text-sm text-gray-800">Enterprise Financial Ledger</h2>
+            <button id="openModalBtn" class="bg-[#0A0A0A] hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm flex items-center gap-1.5">
+                <i class="ph ph-plus font-bold"></i> Record Transaction
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 max-w-6xl w-full mx-auto">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50/50 text-[11px] font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                            <th class="px-5 py-3 font-medium">Date & Time</th>
+                            <th class="px-5 py-3 font-medium">Description</th>
+                            <th class="px-5 py-3 font-medium">Student Reference</th>
+                            <th class="px-5 py-3 font-medium text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody" class="divide-y divide-gray-100 text-xs">
+                        <tr><td colspan="4" class="px-5 py-8 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-lg mb-2"></i><p>Fetching immutable ledger records...</p></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="transactionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-sm hidden">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-gray-200 overflow-hidden" id="modalPanel">
+                <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
+                    <h3 class="text-sm font-semibold text-gray-900">New Transaction</h3>
+                    <button id="closeModalBtn" class="text-gray-400 hover:text-gray-800 transition-colors"><i class="ph ph-x text-base"></i></button>
+                </div>
+                <form id="transactionForm" class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">Student Cloud ID</label>
+                        <input type="text" id="studentId" required placeholder="e.g. 6a229369..." class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs transition-colors font-mono">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">Type</label>
+                            <select id="transType" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs transition-colors">
+                                <option value="DEBIT">Invoice (Debit)</option>
+                                <option value="CREDIT">Payment (Credit)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">Amount (₹)</label>
+                            <input type="number" id="amount" required placeholder="0.00" min="0" step="0.01" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs transition-colors">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">Description</label>
+                        <input type="text" id="description" required placeholder="Fee Description" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs transition-colors">
+                    </div>
+                    <div id="modalError" class="hidden text-red-500 text-[11px] font-medium text-center bg-red-50 py-2 rounded-md border border-red-100"></div>
+                    <div class="pt-2">
+                        <button type="submit" id="saveBtn" class="w-full bg-[#0A0A0A] text-white font-medium py-2 rounded-md text-xs transition-colors">Commit to Ledger</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+        async function fetchLedger() {
+            const tableBody = document.getElementById('ledgerTableBody');
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/finance/ledger/', { headers: authHeaders });
+                if (response.ok) {
+                    const transactions = await response.json();
+                    tableBody.innerHTML = ''; 
+                    if (transactions.length === 0) { tableBody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-gray-400">No transactions recorded yet.</td></tr>`; return; }
+                    transactions.forEach(tx => {
+                        const dateObj = new Date(tx.timestamp);
+                        const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        const isCredit = tx.type === 'CREDIT';
+                        const amountColor = isCredit ? 'text-green-600' : 'text-gray-900';
+                        const amountPrefix = isCredit ? '+' : '-';
+                        const typeBadge = isCredit ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700 border border-green-100 mr-2">CREDIT</span>` : `<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200 mr-2">DEBIT</span>`;
+                        const row = `
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="px-5 py-3 text-gray-600"><p class="font-medium text-gray-900">${formattedDate}</p><p class="text-[10px] text-gray-400 mt-0.5">${formattedTime}</p></td>
+                                <td class="px-5 py-3"><div class="flex items-center">${typeBadge}<span class="text-gray-800 font-medium">${tx.description}</span></div><p class="text-[10px] text-gray-400 mt-0.5 font-mono">TX: ${tx._id.slice(-8)}</p></td>
+                                <td class="px-5 py-3 text-gray-500 font-mono text-[11px]">${tx.student_id.slice(-8)}</td>
+                                <td class="px-5 py-3 text-right"><span class="font-semibold ${amountColor}">${amountPrefix}₹${parseFloat(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+                }
+            } catch (err) { tableBody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-red-400">Connection to API failed.</td></tr>`; }
+        }
+
+        const modal = document.getElementById('transactionModal');
+        document.getElementById('openModalBtn').addEventListener('click', () => modal.classList.remove('hidden'));
+        document.getElementById('closeModalBtn').addEventListener('click', () => { modal.classList.add('hidden'); document.getElementById('transactionForm').reset(); document.getElementById('modalError').classList.add('hidden'); });
+
+        document.getElementById('transactionForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); const btn = document.getElementById('saveBtn'); btn.textContent = 'Processing...';
+            const payload = { student_id: document.getElementById('studentId').value.trim(), type: document.getElementById('transType').value, amount: parseFloat(document.getElementById('amount').value), description: document.getElementById('description').value.trim() };
+            try { const response = await fetch('http://127.0.0.1:8000/api/finance/ledger/', { method: 'POST', headers: authHeaders, body: JSON.stringify(payload) }); if (response.ok) { document.getElementById('closeModalBtn').click(); fetchLedger(); } } catch (err) {} finally { btn.textContent = 'Commit to Ledger'; }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
+        fetchLedger();
+    </script>
+</body>
+</html>

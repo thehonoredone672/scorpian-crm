@@ -5,177 +5,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scorpion Academy | Active Roster</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; }
-        ::-webkit-scrollbar { width: 6px; }
+        body { font-family: 'Inter', sans-serif; background-color: #FAFAFA; color: #111111; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+        input:focus { outline: none; border-color: #0A0A0A; box-shadow: 0 0 0 1px #0A0A0A; }
+        .drawer-open { transform: translateX(0%); }
+        .drawer-closed { transform: translateX(100%); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-gray-900">
+<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black relative">
 
     <script>
         const token = localStorage.getItem('scorp_token');
-        if (!token) window.location.href = 'index.html';
+        if (!token) window.location.href = 'login.html';
     </script>
 
-    <aside class="w-64 bg-[#111111] text-gray-400 flex flex-col shrink-0">
-        <div class="h-20 flex items-center px-6 border-b border-gray-800">
-            <div class="bg-white text-black p-1.5 rounded-lg mr-3">
-                <i class="ph ph-rocket-launch text-lg"></i>
+    <aside class="w-56 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-20">
+        <div class="py-5 px-5 flex items-center gap-2">
+            <div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black">
+                <i class="ph-fill ph-rocket-launch text-[10px]"></i>
             </div>
-            <div>
-                <h1 class="text-sm font-bold text-white tracking-wide">Scorpion Academy</h1>
-                <p class="text-[10px] font-semibold tracking-widest uppercase">Management</p>
+            <div class="leading-none">
+                <h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1>
+                <p class="text-[10px] text-gray-400 font-medium mt-0.5">CRM Architecture</p>
             </div>
         </div>
 
-        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
-                <i class="ph ph-squares-four text-xl"></i>
-                <span class="text-sm font-medium">Overview</span>
+        <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
+                <i class="ph ph-squares-four text-base"></i> Overview
             </a>
-            <a href="#" class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
-                <i class="ph ph-users text-xl"></i>
-                <span class="text-sm font-medium">Enquiries</span>
+            <a href="roster.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium">
+                <i class="ph-fill ph-users text-base"></i> Active Roster
             </a>
-            <a href="roster.html" class="flex items-center gap-3 px-3 py-2.5 bg-white/10 text-white rounded-lg transition-colors">
-                <i class="ph-fill ph-list-dashes text-xl"></i>
-                <span class="text-sm font-medium">Active Roster</span>
+            <a href="schedule.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
+                <i class="ph ph-calendar-blank text-base"></i> Class Schedule
+            </a>
+            <a href="ledger.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
+                <i class="ph ph-wallet text-base"></i> Financial Ledger
             </a>
         </nav>
 
-        <div class="p-4 border-t border-gray-800">
-            <button id="logoutBtn" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors w-full">
-                <i class="ph ph-sign-out text-xl"></i> Log Out
+        <div class="p-4 flex flex-col gap-4">
+            <button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors text-left">
+                <i class="ph ph-sign-out text-base"></i> Sign out
             </button>
+            <div class="pt-3 border-t border-white/10 px-2">
+                <p class="text-[10px] text-gray-500">
+                    Developed by <br>
+                    <a href="https://dexys.in" target="_blank" class="font-medium text-gray-400 hover:text-white transition-colors">Dexys IT Solutions</a>
+                </p>
+            </div>
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
-            <div class="flex items-center gap-4">
-                <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <i class="ph ph-student text-xl text-gray-500"></i> Active Roster
-                </h2>
-            </div>
-            <button class="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
-                + Add Student
+    <main class="flex-1 flex flex-col h-screen relative z-10">
+        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md shrink-0">
+            <h2 class="font-medium text-sm text-gray-800">Active Student Roster</h2>
+            <button id="openModalBtn" class="bg-[#0A0A0A] hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm flex items-center gap-1.5">
+                <i class="ph ph-plus font-bold"></i> Register Profile
             </button>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-8">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                
-                <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-                    <div class="relative max-w-md">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" placeholder="Search names or contact info..." 
-                            class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-black">
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-white text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                                <th class="px-6 py-4">Student Profile</th>
-                                <th class="px-6 py-4">Contact</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="studentTableBody" class="divide-y divide-gray-50">
-                            <tr>
-                                <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">
-                                    <i class="ph ph-spinner animate-spin text-2xl mb-2"></i>
-                                    <p>Loading roster from MongoDB Atlas...</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="flex-1 overflow-y-auto p-8 max-w-6xl w-full mx-auto">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50/50 text-[11px] font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                            <th class="px-5 py-3 font-medium">Student Profile</th>
+                            <th class="px-5 py-3 font-medium">Contact Information</th>
+                            <th class="px-5 py-3 font-medium">System Status</th>
+                            <th class="px-5 py-3 font-medium text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody" class="divide-y divide-gray-100 text-xs">
+                        <tr>
+                            <td colspan="4" class="px-5 py-8 text-center text-gray-400">
+                                <i class="ph ph-spinner animate-spin text-lg mb-2"></i>
+                                <p>Fetching roster from cloud...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>
 
-    <script>
-        // Logout Logic
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.clear();
-            window.location.href = 'index.html';
-        });
+    <div id="drawerBackdrop" class="fixed inset-0 bg-gray-900/10 backdrop-blur-[1px] hidden z-40 transition-opacity" onclick="closeProfileDrawer()"></div>
+    <div id="profileDrawer" class="fixed inset-y-0 right-0 w-[400px] bg-white border-l border-gray-200 shadow-2xl z-50 drawer-closed transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="h-14 px-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+            <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">360° Profile View</h3>
+            <button onclick="closeProfileDrawer()" class="text-gray-400 hover:text-gray-900 transition-colors p-1 rounded-md hover:bg-gray-200"><i class="ph ph-x text-base"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="flex items-center gap-4 mb-8">
+                <div id="drawerAvatar" class="h-14 w-14 bg-gray-100 text-gray-800 rounded-full flex items-center justify-center text-lg font-semibold border border-gray-200 shrink-0"></div>
+                <div>
+                    <h2 id="drawerName" class="text-xl font-semibold text-gray-900 tracking-tight"></h2>
+                    <p id="drawerId" class="text-[11px] font-mono text-gray-400 mt-0.5 uppercase"></p>
+                </div>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <h4 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-1.5 mb-3">Contact Payload</h4>
+                    <div class="space-y-2.5">
+                        <div class="flex items-center gap-3"><i class="ph ph-phone text-gray-400 text-sm"></i><span id="drawerPhone" class="text-xs text-gray-700 font-medium"></span></div>
+                        <div class="flex items-center gap-3"><i class="ph ph-envelope-simple text-gray-400 text-sm"></i><span id="drawerEmail" class="text-xs text-gray-700 font-medium"></span></div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-1.5 mb-3">Progression Engine</h4>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-3"><span class="text-xs text-gray-500 font-medium">Current Belt Rank</span><span class="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-semibold text-gray-800 shadow-sm">White Belt</span></div>
+                        <div class="flex justify-between items-center"><span class="text-xs text-gray-500 font-medium">Attendance Score</span><span class="text-xs font-semibold text-green-600">Pending</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Fetch Live Student Data from Django Backend
+    <div id="studentModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-gray-200 overflow-hidden" id="modalPanel">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
+                <h3 class="text-sm font-semibold text-gray-900">Register Student</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-800 transition-colors"><i class="ph ph-x text-base"></i></button>
+            </div>
+            <form id="registerForm" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">Full Name</label>
+                    <input type="text" id="fullName" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs transition-colors">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">Phone</label>
+                        <input type="text" id="phone" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+                        <input type="email" id="email" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs transition-colors">
+                    </div>
+                </div>
+                <div id="modalError" class="hidden text-red-500 text-[11px] font-medium text-center bg-red-50 py-2 rounded-md border border-red-100"></div>
+                <div class="pt-2">
+                    <button type="submit" id="saveBtn" class="w-full bg-[#0A0A0A] text-white font-medium py-2 rounded-md text-xs transition-colors">Create Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let activeBranchId = null; let globalStudents = [];
+        const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+        async function initializeEngine() {
+            try {
+                const branchRes = await fetch('http://127.0.0.1:8000/api/branches/', { headers: authHeaders });
+                if (branchRes.ok) { const branches = await branchRes.json(); if (branches.length > 0) activeBranchId = branches[0]._id; }
+                fetchRoster();
+            } catch (err) {}
+        }
+
         async function fetchRoster() {
             const tableBody = document.getElementById('studentTableBody');
-            
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/students/', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
+                const response = await fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders });
                 if (response.ok) {
-                    const students = await response.json();
-                    tableBody.innerHTML = ''; // Clear loading state
-
-                    if (students.length === 0) {
-                        tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">No active students found.</td></tr>`;
-                        return;
-                    }
-
-                    students.forEach(student => {
-                        // Generate the first letter avatar
+                    globalStudents = await response.json();
+                    tableBody.innerHTML = ''; 
+                    if (globalStudents.length === 0) { tableBody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-gray-400">No student records found.</td></tr>`; return; }
+                    globalStudents.reverse().forEach((student, index) => {
                         const initial = student.first_name.charAt(0).toUpperCase();
-                        
                         const row = `
-                            <tr class="hover:bg-gray-50 transition-colors group">
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-4">
-                                        <div class="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-sm font-bold text-gray-900 border border-gray-200">
-                                            ${initial}
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-semibold text-gray-900">${student.first_name} ${student.last_name}</p>
-                                            <p class="text-[11px] text-gray-400 mt-0.5">ID: ${student._id.slice(-6)}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <p class="text-sm text-gray-600">${student.phone || 'N/A'}</p>
-                                    <p class="text-xs text-gray-400 mt-0.5">${student.email || 'No email'}</p>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-100">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div> Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button class="p-1.5 text-gray-400 hover:text-black transition-colors rounded-md hover:bg-gray-100"><i class="ph ph-pencil-simple text-lg"></i></button>
-                                        <button class="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50"><i class="ph ph-trash text-lg"></i></button>
-                                    </div>
-                                </td>
+                            <tr class="hover:bg-gray-50/50 transition-colors group cursor-pointer" onclick="openProfileDrawer(${index})">
+                                <td class="px-5 py-3"><div class="flex items-center gap-3"><div class="h-7 w-7 bg-gray-100 text-gray-700 rounded-full flex items-center justify-center text-[11px] font-semibold border border-gray-200">${initial}</div><div><p class="font-medium text-gray-900">${student.first_name} ${student.last_name}</p><p class="text-[10px] text-gray-400 mt-0.5 font-mono">ID: ${student._id.slice(-6)}</p></div></div></td>
+                                <td class="px-5 py-3 text-gray-600"><p>${student.phone || '—'}</p></td>
+                                <td class="px-5 py-3"><div class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-[#0A0A0A]"></div><span class="text-[11px] font-medium text-gray-600">Active</span></div></td>
+                                <td class="px-5 py-3 text-right"><button class="text-gray-400 hover:text-black transition-colors px-2 py-1 rounded hover:bg-gray-100"><i class="ph ph-dots-three text-lg"></i></button></td>
                             </tr>
                         `;
                         tableBody.innerHTML += row;
                     });
-                } else {
-                    tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-red-500">Failed to load data. Unauthorized.</td></tr>`;
                 }
-            } catch (err) {
-                console.error(err);
-                tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-red-500">Network Error: Is the Django server running?</td></tr>`;
-            }
+            } catch (err) { tableBody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-red-400">Connection to API failed.</td></tr>`; }
         }
 
-        fetchRoster();
+        const drawer = document.getElementById('profileDrawer'); const backdrop = document.getElementById('drawerBackdrop');
+        function openProfileDrawer(index) {
+            const student = globalStudents[index];
+            document.getElementById('drawerAvatar').textContent = student.first_name.charAt(0).toUpperCase();
+            document.getElementById('drawerName').textContent = `${student.first_name} ${student.last_name}`;
+            document.getElementById('drawerId').textContent = `Cloud ID: ${student._id}`;
+            document.getElementById('drawerPhone').textContent = student.phone || '—';
+            document.getElementById('drawerEmail').textContent = student.email || '—';
+            backdrop.classList.remove('hidden'); setTimeout(() => { drawer.classList.remove('drawer-closed'); drawer.classList.add('drawer-open'); }, 10);
+        }
+        function closeProfileDrawer() {
+            drawer.classList.remove('drawer-open'); drawer.classList.add('drawer-closed');
+            setTimeout(() => { backdrop.classList.add('hidden'); }, 300);
+        }
+
+        const modal = document.getElementById('studentModal');
+        document.getElementById('openModalBtn').addEventListener('click', () => modal.classList.remove('hidden'));
+        document.getElementById('closeModalBtn').addEventListener('click', () => { modal.classList.add('hidden'); document.getElementById('registerForm').reset(); document.getElementById('modalError').classList.add('hidden'); });
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); const btn = document.getElementById('saveBtn'); btn.textContent = 'Processing...';
+            const nameParts = document.getElementById('fullName').value.trim().split(' ');
+            const payload = { first_name: nameParts[0], last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : ' ', phone: document.getElementById('phone').value, email: document.getElementById('email').value, branch_id: activeBranchId };
+            try { const response = await fetch('http://127.0.0.1:8000/api/students/', { method: 'POST', headers: authHeaders, body: JSON.stringify(payload) }); if (response.ok) { document.getElementById('closeModalBtn').click(); fetchRoster(); } } catch (err) {} finally { btn.textContent = 'Create Record'; }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
+        initializeEngine();
     </script>
 </body>
 </html>

@@ -9,10 +9,50 @@ import datetime
 
 class BatchSchedulingView(APIView):
     """
-    Automated configuration engine for generating recurring training schedules.
+    Automated configuration engine for generating and fetching recurring training schedules.
     """
     authentication_classes = [MongoJWTAuthentication]
 
+    def get(self, request):
+        """Fetches today's generated class sessions for the active branch."""
+        user = request.user
+        
+        # Get today's date string (e.g., "2026-06-08")
+        today_str = datetime.date.today().isoformat()
+        
+        query = {"session_date": today_str}
+        
+        # Enforce Tenant Isolation
+        if user.role == 'BRANCH_MANAGER':
+            query["branch_id"] = ObjectId(user.branch_id)
+            
+        # Fetch today's session instances
+        sessions_cursor = db['sessions'].find(query)
+        
+        schedule_data = []
+        for session in sessions_cursor:
+            # Join with the master Batch template to get the name and time
+            batch = db['batches'].find_one({"_id": session['batch_id']})
+            
+            if batch:
+                # Join with the Sport collection to get the sport name
+                sport = db['sports'].find_one({"_id": batch['sport_id']})
+                
+                # Calculate a mock end time (1 hour after start time) for the UI
+                start_hour = int(batch.get("start_time", "00:00").split(":")[0])
+                end_time_str = f"{str(start_hour + 1).zfill(2)}:00"
+
+                schedule_data.append({
+                    "_id": str(session['_id']), # We pass the SESSION ID, not the Batch ID, for check-ins!
+                    "name": batch.get("batch_name", "Standard Batch"),
+                    "sport_name": sport.get("name", "Training") if sport else "Training",
+                    "start_time": batch.get("start_time", "00:00"),
+                    "end_time": end_time_str,
+                    "instructor_id": "Unassigned"
+                })
+                
+        return Response(schedule_data, status=status.HTTP_200_OK)
+    
     def post(self, request):
         user = request.user
         data = request.data

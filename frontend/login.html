@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        input:focus { outline: none; border-color: #000; box-shadow: 2px 2px 0px 0px rgba(0,0,0,1); }
+    </style>
+</head>
+<body class="h-screen flex selection:bg-black selection:text-white overflow-hidden">
+
+    <!-- Left Brand Panel (Black) -->
+    <div class="w-1/2 bg-black text-white flex flex-col justify-center px-20 border-r-4 border-black relative">
+        <div class="inline-block border-4 border-white p-4 mb-6 w-fit hover:bg-white hover:text-black transition-colors duration-300">
+            <h1 class="text-4xl font-black tracking-tighter uppercase">Scorpion Academy</h1>
+        </div>
+        
+        <!-- Updated CRM Abbreviation Header -->
+        <h2 class="text-5xl font-bold leading-tight tracking-tight mb-4">
+            Customer<br>Relationship<br>Management.
+        </h2>
+        <p class="text-gray-400 font-bold uppercase tracking-widest text-sm border-l-4 border-white pl-4">
+            C.R.M. Architecture
+        </p>
+
+        <!-- Dexys IT Solutions Footer Link -->
+        <div class="absolute bottom-12 left-20">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Developed by 
+                <a href="https://dexys.in" target="_blank" class="text-white hover:text-gray-300 hover:underline decoration-2 underline-offset-4 transition-all">
+                    Dexys IT Solutions
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Right Login Panel (White) -->
+    <div class="w-1/2 bg-white text-black flex items-center justify-center relative">
+        <div class="w-full max-w-sm px-6">
+            <div class="mb-10 border-b-4 border-black pb-4">
+                <h2 class="text-2xl font-black tracking-tight uppercase">System Authorization</h2>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-bold uppercase tracking-wider mb-2">Email address</label>
+                    <input type="email" id="email" value="architect@scorpion.com" required
+                        class="w-full px-4 py-3 bg-white border-2 border-black text-sm font-bold transition-all placeholder-gray-400 rounded-none uppercase">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold uppercase tracking-wider mb-2">Password</label>
+                    <input type="password" id="password" value="ValkyrieProtocol2026!" required
+                        class="w-full px-4 py-3 bg-white border-2 border-black text-sm font-bold transition-all placeholder-gray-400 rounded-none">
+                </div>
+
+                <div id="errorMessage" class="hidden text-sm bg-black text-white p-3 font-bold text-center border-2 border-black uppercase tracking-widest"></div>
+
+                <button type="submit" 
+                    class="w-full bg-black hover:bg-white hover:text-black text-white border-2 border-black font-black uppercase tracking-widest py-4 px-4 transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-1 hover:translate-x-1">
+                    Authenticate
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorBox = document.getElementById('errorMessage');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            
+            errorBox.classList.add('hidden');
+            submitBtn.textContent = 'VERIFYING...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('scorp_token', data.access_token);
+                    localStorage.setItem('scorp_role', data.role);
+                    window.location.href = 'dashboard.html'; 
+                } else {
+                    errorBox.textContent = data.error || 'ACCESS DENIED';
+                    errorBox.classList.remove('hidden');
+                    submitBtn.textContent = 'AUTHENTICATE';
+                    submitBtn.disabled = false;
+                }
+            } catch (err) {
+                errorBox.textContent = 'NETWORK FAILURE';
+                errorBox.classList.remove('hidden');
+                submitBtn.textContent = 'AUTHENTICATE';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
