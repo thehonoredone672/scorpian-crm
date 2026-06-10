@@ -3,80 +3,73 @@ from rest_framework.response import Response
 from rest_framework import status
 from database.mongodb_client import db
 from accounts.authentication import MongoJWTAuthentication
-from accounts.permissions import IsSuperAdmin
 from bson import ObjectId
 import datetime
 
 class InvoiceCreatePaymentView(APIView):
     """
-    Enterprise ledger controller handling debit generation and credit matching.
+    Core API Controller for SRS Module 7 (Fee Management).
+    Tracks double-entry style debits (Invoices) and credits (Payments) inside MongoDB.
     """
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
-        """Fetches financial transaction history bounded tightly by tenant rules."""
+        """Fetches the comprehensive financial ledger stream across the active branch tenant context."""
         user = request.user
-        ledger_collection = db['ledger']
-        
         query = {}
-        if user.role == 'SUPER_ADMIN':
-            pass # Corporate visibility
-        elif user.role == 'BRANCH_MANAGER':
-            query["branch_id"] = ObjectId(user.branch_id) # Siloed visibility
-        else:
-            return Response({"error": "Access Denied: Financial clearance required."}, status=status.HTTP_403_FORBIDDEN)
 
-        cursor = ledger_collection.find(query).sort("timestamp", -1)
-        
-        records = []
-        for row in cursor:
-            row['_id'] = str(row['_id'])
-            row['student_id'] = str(row['student_id'])
-            row['branch_id'] = str(row['branch_id'])
-            records.append(row)
-            
-        return Response(records, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        """Creates a brand new debit invoice or payments credit entry into the ledger."""
-        user = request.user
-        data = request.data
-        
-        student_id_str = data.get('student_id')
-        amount = data.get('amount') # Store as base integer units
-        transaction_type = data.get('type') # DEBIT (Fee Due) or CREDIT (Payment Made)
-        description = data.get('description', 'Monthly Tuition Fee')
-
-        if not all([student_id_str, amount, transaction_type]):
-            return Response({"error": "Missing ledger attributes: student_id, amount, type required."}, status=status.HTTP_400_BAD_REQUEST)
+        # Maintain multi-tenant operational security isolation
+        if user.role in ['BRANCH_MANAGER', 'INSTRUCTOR'] and hasattr(user, 'branch_id'):
+            query["branch_id"] = ObjectId(user.branch_id)
 
         try:
-            student_obj_id = ObjectId(student_id_str)
-        except Exception:
-            return Response({"error": "Malformed Student ID format."}, status=status.HTTP_400_BAD_REQUEST)
+            ledger_cursor = db['payments'].find(query)
+            ledger_payload = []
 
-        # Confirm student existence and extract branch context
-        student = db['students'].find_one({"_id": student_obj_id})
-        if not student:
-            return Response({"error": "Target student profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            for tx in ledger_cursor:
+                ledger_payload.append({
+                    "_id": str(tx.get('_id')),
+                    "student_id": str(tx.get('student_id')),
+                    "amount": float(tx.get('amount', 0.00)),
+                    "type": tx.get('type', 'DEBIT'), # DEBIT = Invoice Issued, CREDIT = Payment Paid
+                    "payment_mode": tx.get('payment_mode', 'UPI'), # UPI, CASH, BANK_TRANSFER, CARD
+                    "description": tx.get('description', 'Monthly Training Fee Partition'),
+                    "timestamp": tx.get('payment_date', datetime.datetime.utcnow().isoformat())
+                })
+            
+            # Returns the ledger stream reverse-chronologically
+            return Response(ledger_payload[::-1], status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Ledger system aggregate fetch aborted: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        branch_obj_id = student['branch_id']
+    def post(self, request):
+        """Commits a brand-new financial transaction directly into the immutable ledger blocks."""
+        user = request.user
+        data = request.data
 
-        # Tenant Security Enforcement Check
-        if user.role == 'BRANCH_MANAGER' and str(branch_obj_id) != user.branch_id:
-            return Response({"error": "Unauthorized: Student belongs to an alternate branch silo."}, status=status.HTTP_403_FORBIDDEN)
+        # Explicit payload data checks
+        student_id = data.get('student_id')
+        amount = data.get('amount')
+        tx_type = data.get('type') # EXPECTS: "DEBIT" or "CREDIT"
 
-        new_transaction = {
-            "student_id": student_obj_id,
-            "branch_id": branch_obj_id,
-            "amount": float(amount),
-            "type": transaction_type.upper(), # DEBIT / CREDIT
-            "description": description.strip(),
-            "timestamp": datetime.datetime.now(datetime.timezone.utc)
-        }
+        if not student_id or amount is None or not tx_type:
+            return Response({"error": "Missing transaction parameters: student_id, amount, and type are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        result = db['ledger'].insert_one(new_transaction)
-        return Response({
-            "message": "Financial ledger entry written securely to the cloud cluster.",
-            "transaction_id": str(result.inserted_id)
-        }, status=status.HTTP_201_CREATED)
+        try:
+            tx_document = {
+                "student_id": ObjectId(student_id),
+                "amount": float(amount),
+                "type": tx_type.upper(),
+                "payment_mode": data.get('payment_mode', 'UPI').upper(),
+                "description": data.get('description', 'Training Fee Apportionment').strip(),
+                "payment_date": datetime.datetime.utcnow().isoformat(),
+                "branch_id": ObjectId(user.branch_id) if hasattr(user, 'branch_id') else None
+            }
+
+            result = db['payments'].insert_one(tx_document)
+            return Response({
+                "message": "Financial parameter logged safely to cloud database partition.",
+                "tx_id": str(result.inserted_id)
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": f"Ledger transactional logging execution aborted: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

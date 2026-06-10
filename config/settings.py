@@ -1,6 +1,7 @@
 """
 Django settings for Scorpion Academy ERP & CRM project.
 Engineered for strict NoSQL (MongoDB Atlas) integration.
+Optimized for zero-downtime deployment on Render.
 """
 
 import os
@@ -19,12 +20,17 @@ if not SECRET_KEY:
 # Explicit string-to-boolean translation preventing logical fallbacks
 DEBUG = os.getenv("DEBUG", "False").strip().lower() in ["true", "1", "yes"]
 
-# Host resolution matrix mapping
-if DEBUG:
-    ALLOWED_HOSTS = ["*", "127.0.0.1", "localhost"]
-else:
-    # Production route access restrictions will be handled during cloud stage
-    ALLOWED_HOSTS = []
+# Dynamic Host Resolution Matrix mapping
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "localhost:5500"]
+
+# Automatically ingest your specific Render Web Service URL if available
+RENDER_EXTERNAL_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    ALLOWED_HOSTS.append(".render.com")
+
+if DEBUG and not RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append("*")
 
 # 3. Component Architecture Layer (Application Registrations)
 INSTALLED_APPS = [
@@ -35,18 +41,21 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders', # <--- ADD THIS HERE
+    'corsheaders',
     'accounts',
     'branches',
     'sports',
     'students',
     'finance',
+    'leads',  # Ensure leads module app structure is registered explicitly
 ]
 
 # 4. Request-Response Pipeline Processing Rules (Middleware)
+# WhiteNoise handles streaming production static files without needing Nginx/Apache config
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # <--- ADD THIS AT THE VERY TOP
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # <--- Insert right under security middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,7 +85,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # 5. Database Decoupling Configuration
-# We explicitly route this to a dummy backend to prevent Django from looking for local SQL files.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.dummy',
@@ -84,20 +92,11 @@ DATABASES = {
 }
 
 # 6. Password Storage Fallback Rules
-# Note: For our core app users, we use our custom bcrypt layout in accounts/utils.py
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 # 7. Localization, Regionalization & Time Management
@@ -106,8 +105,13 @@ TIME_ZONE = 'Asia/Kolkata'  # Synced for Indian Standard Time
 USE_I18N = True
 USE_TZ = True
 
-# 8. Assets & Media Allocation Control
-STATIC_URL = 'static/'
+# 8. Production Assets Allocation Control
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Turn on compressed caching for static elements to boost load times
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 9. Framework-Wide REST Integration Behavior Engine Rules
@@ -117,10 +121,17 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'accounts.authentication.MongoJWTAuthentication', # Enforce our custom NoSQL token validation engine
+        'accounts.authentication.MongoJWTAuthentication',
     ],
-    'UNAUTHENTICATED_USER': None,  # Decouples anonymous SQL User references entirely
+    'UNAUTHENTICATED_USER': None,
 }
 
-# CORS CONFIGURATION (Development Mode)
-CORS_ALLOW_ALL_ORIGINS = True # Allows our local HTML files to talk to the API
+# 10. CORS Policy Mapping Setup
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+    ]

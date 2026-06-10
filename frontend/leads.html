@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Lead Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FAFAFA; color: #111111; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+        input:focus, select:focus { outline: none; border-color: #000; box-shadow: 0 0 0 1px #000; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black relative">
+
+    <script>
+        const token = localStorage.getItem('scorp_token');
+        if (!token) window.location.href = 'login.html';
+    </script>
+
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-30 md:hidden" onclick="toggleMobileSidebar()"></div>
+
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-60 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-40 transform -translate-x-full transition-transform duration-200 md:relative md:translate-x-0">
+        <div class="py-5 px-5 flex items-center justify-between border-b border-white/5">
+            <div class="flex items-center gap-2">
+                <div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black"><i class="ph-fill ph-shield-check text-[11px]"></i></div>
+                <h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1>
+            </div>
+            <button onclick="toggleMobileSidebar()" class="text-gray-400 hover:text-white md:hidden p-1"><i class="ph ph-caret-left text-lg"></i></button>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-squares-four text-base"></i> Overview Metrics</a>
+            <a href="leads.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium"><i class="ph-fill ph-funnel text-base"></i> Lead Management</a>
+            <a href="students.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-student text-base"></i> Students</a>
+            <a href="batches.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-calendar text-base"></i> Batch Management</a>
+            <a href="attendance.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-notebook text-base"></i> Attendance Log</a>
+            <a href="fees.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-wallet text-base"></i> Fee Accounting</a>
+            <a href="exams.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-certificate text-base"></i> Belt Examinations</a>
+        </nav>
+        <div class="p-4 border-t border-white/5"><button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white text-left"><i class="ph ph-sign-out text-base"></i> Terminate Link</button></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0 gap-4">
+            <div class="flex items-center gap-3 w-full max-w-xl">
+                <button onclick="toggleMobileSidebar()" class="p-1.5 bg-gray-50 border border-gray-200 md:hidden rounded-md"><i class="ph ph-list text-base"></i></button>
+                <div class="relative w-full max-w-xs">
+                    <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="leadSearch" onkeyup="searchLeads()" placeholder="Search leads pipeline..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs focus:bg-white">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="exportLeads()" class="border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors">
+                    <i class="ph ph-download"></i> Export CSV
+                </button>
+                <button onclick="openLeadModal()" class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"><i class="ph ph-plus font-bold"></i> Add Lead</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                        <tr class="bg-gray-50/50 text-[11px] font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                            <th class="px-5 py-3">Lead Identifier</th>
+                            <th class="px-5 py-3">Contact</th>
+                            <th class="px-5 py-3">Program / Source</th>
+                            <th class="px-5 py-3 text-right">Pipeline Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsTableBody" class="divide-y divide-gray-100 text-xs"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="modalBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-40" onclick="closeLeadModal()"></div>
+    <div id="leadModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Capture New Lead</h3>
+                <button onclick="closeLeadModal()" class="text-gray-400 hover:text-black"><i class="ph ph-x text-base"></i></button>
+            </div>
+            <form id="leadForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Lead Name *</label><input type="text" id="l_name" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Age</label><input type="number" id="l_age" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Gender</label><select id="l_gender" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Mobile Contact *</label><input type="text" id="l_phone" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">WhatsApp Pipeline</label><input type="text" id="l_whatsapp" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Program Target</label><input type="text" id="l_program" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                </div>
+                <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Pipeline State Status</label><select id="l_status" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"><option value="NEW">New Lead</option><option value="CONTACTED">Contacted</option><option value="FOLLOW_UP">Follow-up Pending</option><option value="TRIAL">Trial Class</option></select></div>
+                <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-medium py-2 rounded-md text-xs transition-colors mt-2">Commit Record</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+        function toggleMobileSidebar() {
+            document.getElementById('mainSidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarBackdrop').classList.toggle('hidden');
+        }
+        function openLeadModal() { document.getElementById('leadModal').classList.remove('hidden'); document.getElementById('modalBackdrop').classList.remove('hidden'); }
+        function closeLeadModal() { document.getElementById('leadModal').classList.add('hidden'); document.getElementById('modalBackdrop').classList.add('hidden'); document.getElementById('leadForm').reset(); }
+
+        async function loadLeadsData() {
+            const body = document.getElementById('leadsTableBody');
+            body.innerHTML = `<tr><td colspan="4" class="p-5 text-gray-400 text-center animate-pulse">Reading lead architecture logs...</td></tr>`;
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/leads/', { headers: authHeaders });
+                if(res.ok) {
+                    const leads = await res.json();
+                    body.innerHTML = '';
+                    if(leads.length === 0) { body.innerHTML = `<tr><td colspan="4" class="p-5 text-center text-gray-400">Pipeline empty.</td></tr>`; return;}
+                    leads.reverse().forEach(l => {
+                        body.innerHTML += `<tr class="hover:bg-gray-50/50 transition-colors"><td class="px-5 py-3 font-semibold text-gray-900">${l.name}</td><td class="px-5 py-3 text-gray-500 font-mono">${l.phone}</td><td class="px-5 py-3 text-gray-600">${l.program || 'General Inquiry'}</td><td class="px-5 py-3 text-right"><span class="px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-700 rounded text-[10px] font-bold tracking-wider">${l.status}</span></td></tr>`;
+                    });
+                }
+            } catch(e) { body.innerHTML = `<tr><td colspan="4" class="p-5 text-red-500">Read execution failure.</td></tr>`; }
+        }
+
+        async function exportLeads() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/export/leads/', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `scorpion_leads_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        document.getElementById('leadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('l_name').value,
+                age: parseInt(document.getElementById('l_age').value) || 0,
+                gender: document.getElementById('l_gender').value,
+                phone: document.getElementById('l_phone').value,
+                whatsapp: document.getElementById('l_whatsapp').value,
+                program: document.getElementById('l_program').value,
+                status: document.getElementById('l_status').value
+            };
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/leads/', { method: 'POST', headers: authHeaders, body: JSON.stringify(payload) });
+                if(res.ok) { closeLeadModal(); loadLeadsData(); }
+            } catch(err) { console.error(err); }
+        });
+
+        function searchLeads() {
+            const input = document.getElementById('leadSearch').value.toLowerCase();
+            document.querySelectorAll('#leadsTableBody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(input) ? '' : 'none';
+            });
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
+        loadLeadsData();
+    </script>
+</body>
+</html>

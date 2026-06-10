@@ -1,4 +1,13 @@
-.env
-*.env
+# Python Virtual Environments
 .venv/
+venv/
 env/
+ENV/
+python-env/
+custom-env/
+
+# Environment Variables and Secrets
+.env
+.env.local
+.env.*
+!.env.example

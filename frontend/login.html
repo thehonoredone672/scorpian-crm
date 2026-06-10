@@ -3,68 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scorpion Academy | Access</title>
+    <title>Scorpion Academy | Access Gateway</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        input:focus { outline: none; border-color: #000; box-shadow: 2px 2px 0px 0px rgba(0,0,0,1); }
+        input:focus { outline: none; border-color: #000000; box-shadow: 0 0 0 1px #000000; }
     </style>
 </head>
-<body class="h-screen flex selection:bg-black selection:text-white overflow-hidden">
+<body class="h-screen flex flex-col md:flex-row selection:bg-black selection:text-white overflow-hidden bg-white">
 
-    <!-- Left Brand Panel (Black) -->
-    <div class="w-1/2 bg-black text-white flex flex-col justify-center px-20 border-r-4 border-black relative">
-        <div class="inline-block border-4 border-white p-4 mb-6 w-fit hover:bg-white hover:text-black transition-colors duration-300">
-            <h1 class="text-4xl font-black tracking-tighter uppercase">Scorpion Academy</h1>
+    <div class="w-full md:w-1/2 bg-[#0A0A0A] text-white flex flex-col justify-between p-8 md:p-16 border-b md:border-b-0 md:border-r border-white/10 relative shrink-0">
+        <div class="flex items-center gap-2.5">
+            <div class="w-6 h-6 bg-white rounded flex items-center justify-center text-black">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 009 11V7a4 4 0 00-8 0v4c0 2.517.353 4.926 1.008 7.229m11.588.01a13.917 13.917 0 002.753-9.57V7a4 4 0 00-8 0v4c0 2.517.353 4.926 1.008 7.229"></path>
+                </svg>
+            </div>
+            <span class="text-xs md:text-sm font-bold uppercase tracking-wider">Scorpion Academy</span>
         </div>
         
-        <!-- Updated CRM Abbreviation Header -->
-        <h2 class="text-5xl font-bold leading-tight tracking-tight mb-4">
-            Customer<br>Relationship<br>Management.
-        </h2>
-        <p class="text-gray-400 font-bold uppercase tracking-widest text-sm border-l-4 border-white pl-4">
-            C.R.M. Architecture
-        </p>
+        <div class="max-w-md my-8 md:my-0">
+            <h2 class="text-2xl md:text-4xl font-extrabold leading-tight tracking-tight mb-2 md:mb-4 text-white">
+                Customer<br class="hidden md:block"> Relationship<br class="hidden md:block"> Management.
+            </h2>
+            <p class="text-gray-400 text-[10px] md:text-xs font-semibold uppercase tracking-widest border-l border-white/20 pl-4">
+                Dojo Control Layer Engine
+            </p>
+        </div>
 
-        <!-- Dexys IT Solutions Footer Link -->
-        <div class="absolute bottom-12 left-20">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">
+        <div class="hidden md:block">
+            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-widest">
                 Developed by 
-                <a href="https://dexys.in" target="_blank" class="text-white hover:text-gray-300 hover:underline decoration-2 underline-offset-4 transition-all">
+                <a href="https://dexys.in" target="_blank" class="text-white hover:text-gray-300 underline underline-offset-4 decoration-1 transition-colors">
                     Dexys IT Solutions
                 </a>
             </p>
         </div>
     </div>
 
-    <!-- Right Login Panel (White) -->
-    <div class="w-1/2 bg-white text-black flex items-center justify-center relative">
-        <div class="w-full max-w-sm px-6">
-            <div class="mb-10 border-b-4 border-black pb-4">
-                <h2 class="text-2xl font-black tracking-tight uppercase">System Authorization</h2>
+    <div class="w-full md:w-1/2 bg-white text-black flex items-center justify-center p-8 overflow-y-auto">
+        <div class="w-full max-w-sm">
+            <div class="mb-8">
+                <h2 class="text-lg md:text-xl font-bold tracking-tight uppercase">System Authorization</h2>
+                <p class="text-xs text-gray-400 mt-1">Enter your secure operational credentials below.</p>
             </div>
 
-            <form id="loginForm" class="space-y-6">
+            <form id="loginForm" class="space-y-5">
                 <div>
-                    <label class="block text-sm font-bold uppercase tracking-wider mb-2">Email address</label>
-                    <input type="email" id="email" value="architect@scorpion.com" required
-                        class="w-full px-4 py-3 bg-white border-2 border-black text-sm font-bold transition-all placeholder-gray-400 rounded-none uppercase">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">Email Address</label>
+                    <input type="email" id="email" value="architect@scorpion.com" required autocomplete="username"
+                        class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium transition-colors placeholder-gray-400">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold uppercase tracking-wider mb-2">Password</label>
-                    <input type="password" id="password" value="ValkyrieProtocol2026!" required
-                        class="w-full px-4 py-3 bg-white border-2 border-black text-sm font-bold transition-all placeholder-gray-400 rounded-none">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">Password</label>
+                    <input type="password" id="password" value="ValkyrieProtocol2026!" required autocomplete="current-password"
+                        class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium transition-colors placeholder-gray-400">
                 </div>
 
-                <div id="errorMessage" class="hidden text-sm bg-black text-white p-3 font-bold text-center border-2 border-black uppercase tracking-widest"></div>
+                <div id="errorMessage" class="hidden text-xs bg-black text-white p-3 font-semibold text-center rounded-lg uppercase tracking-wider border border-black"></div>
 
-                <button type="submit" 
-                    class="w-full bg-black hover:bg-white hover:text-black text-white border-2 border-black font-black uppercase tracking-widest py-4 px-4 transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-1 hover:translate-x-1">
+                <button type="submit" id="submitBtn"
+                    class="w-full bg-black hover:bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg transition-all text-xs uppercase tracking-widest shadow-sm">
                     Authenticate
                 </button>
             </form>
+            
+            <div class="block md:hidden text-center mt-12 pt-6 border-t border-gray-100">
+                <p class="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
+                    Developed by <a href="https://dexys.in" target="_blank" class="text-black font-semibold underline">Dexys IT Solutions</a>
+                </p>
+            </div>
         </div>
     </div>
 
@@ -74,18 +84,19 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorBox = document.getElementById('errorMessage');
-            const submitBtn = document.querySelector('button[type="submit"]');
+            const btn = document.getElementById('submitBtn');
             
             errorBox.classList.add('hidden');
-            submitBtn.textContent = 'VERIFYING...';
-            submitBtn.disabled = true;
+            btn.textContent = 'VERIFYING CONTEXT...';
+            btn.disabled = true;
 
             try {
                 const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, password: password })
+                    body: JSON.stringify({ email, password })
                 });
+
                 const data = await response.json();
 
                 if (response.ok) {
@@ -93,16 +104,16 @@
                     localStorage.setItem('scorp_role', data.role);
                     window.location.href = 'dashboard.html'; 
                 } else {
-                    errorBox.textContent = data.error || 'ACCESS DENIED';
+                    errorBox.textContent = data.error || 'ACCESS REJECTED';
                     errorBox.classList.remove('hidden');
-                    submitBtn.textContent = 'AUTHENTICATE';
-                    submitBtn.disabled = false;
+                    btn.textContent = 'AUTHENTICATE';
+                    btn.disabled = false;
                 }
             } catch (err) {
-                errorBox.textContent = 'NETWORK FAILURE';
+                errorBox.textContent = 'GATEWAY ERROR: CHECK DJANGO ENGINE';
                 errorBox.classList.remove('hidden');
-                submitBtn.textContent = 'AUTHENTICATE';
-                submitBtn.disabled = false;
+                btn.textContent = 'AUTHENTICATE';
+                btn.disabled = false;
             }
         });
     </script>

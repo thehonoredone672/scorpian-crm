@@ -4,82 +4,79 @@ from rest_framework import status
 from database.mongodb_client import db
 from accounts.authentication import MongoJWTAuthentication
 from bson import ObjectId
-import datetime
+import uuid
 
-class StudentListCreateView(APIView):
+class StudentDirectoryView(APIView):
     """
-    Core CRM engine for enrolling and managing academy students.
-    Enforces Strict Tenant Isolation (Branch-Level Data Siloing).
+    Core API Controller for SRS Module 4 (Student Management).
+    Executes deep profile commits and multitenant branch visibility filtering.
     """
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
+        """Fetches all active student profiles isolated by the user's operational branch context."""
         user = request.user
-        students_collection = db['students']
-        
-        # Base query to only fetch currently active students
-        query = {"status": "ACTIVE"}
+        query = {}
 
-        # FIREWALL: Enforce Logical Data Isolation
-        if user.role == 'SUPER_ADMIN':
-            pass # Global access granted
-        elif user.role == 'BRANCH_MANAGER':
-            # Lock the query to their specific assigned franchise location
+        # Enforce strict multi-tenant boundary compliance for staff
+        if user.role in ['BRANCH_MANAGER', 'INSTRUCTOR'] and hasattr(user, 'branch_id'):
             query["branch_id"] = ObjectId(user.branch_id)
-        else:
-            return Response({"error": "Insufficient clearance to view student manifests."}, status=status.HTTP_403_FORBIDDEN)
-
-        cursor = students_collection.find(query)
-        
-        student_list = []
-        for student in cursor:
-            student['_id'] = str(student['_id'])
-            student['branch_id'] = str(student['branch_id'])
-            student_list.append(student)
-            
-        return Response(student_list, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        user = request.user
-        data = request.data
-        
-        # Determine the Branch ID context contextually based on who is making the request
-        if user.role == 'SUPER_ADMIN':
-            branch_id_str = data.get('branch_id')
-            if not branch_id_str:
-                return Response({"error": "Super Admins must explicitly specify a target branch_id in the payload."}, status=status.HTTP_400_BAD_REQUEST)
-        elif user.role == 'BRANCH_MANAGER':
-            # Auto-assign the student to the manager's branch. Never trust client input for this.
-            branch_id_str = user.branch_id
-        else:
-            return Response({"error": "Unauthorized role for enrollment operations."}, status=status.HTTP_403_FORBIDDEN)
 
         try:
-            branch_obj_id = ObjectId(branch_id_str)
-        except Exception:
-            return Response({"error": "Malformed Branch ID parameter."}, status=status.HTTP_400_BAD_REQUEST)
+            students_cursor = db['students'].find(query)
+            students_payload = []
+            
+            for student in students_cursor:
+                students_payload.append({
+                    "id": str(student.get('_id')),
+                    "student_id": student.get('student_id', 'N/A'),
+                    "first_name": student.get('first_name'),
+                    "last_name": student.get('last_name'),
+                    "dob": student.get('dob'),
+                    "blood_group": student.get('blood_group'),
+                    "phone": student.get('phone'),
+                    "parent_name": student.get('parent_name'),
+                    "style": student.get('style', 'General Martial Arts'),
+                    "current_belt": student.get('current_belt', 'WHITE'),
+                    "status": student.get('status', 'ACTIVE')
+                })
+            return Response(students_payload, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Database read failure: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Validate required data
-        first_name = data.get('first_name')
-        last_name = data.get('last_name')
-        
-        if not first_name or not last_name:
-            return Response({"error": "First and Last name are mandatory parameters."}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        """Processes admissions registration and structures the data into the MongoDB collection."""
+        user = request.user
+        data = request.data
 
-        new_student = {
-            "first_name": first_name.strip(),
-            "last_name": last_name.strip(),
-            "email": data.get('email', ''),
-            "phone": data.get('phone', ''),
-            "branch_id": branch_obj_id,
+        # Enforce parameter strict compliance validation checking
+        if not data.get('first_name') or not data.get('last_name') or not data.get('phone'):
+            return Response({"error": "Missing mandatory field records: First name, Last name, and Phone are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Map flat input configurations into structured database documents matching SRS data criteria
+        student_document = {
+            "student_id": f"STU-{uuid.uuid4().hex[:6].upper()}", # Unique tracking identifier code
+            "first_name": data.get('first_name').strip(),
+            "last_name": data.get('last_name').strip(),
+            "dob": data.get('dob', None),
+            "age": None, # Handled dynamically by data pipelines later
+            "gender": data.get('gender', 'UNSPECIFIED'),
+            "blood_group": data.get('blood_group', 'Unknown'),
+            "phone": data.get('phone').strip(),
+            "parent_name": data.get('parent_name', 'Unknown'),
+            "style": data.get('style', 'Karate').strip(),
+            "current_belt": data.get('current_belt', 'WHITE').upper(),
             "status": "ACTIVE",
-            "enrollment_date": datetime.datetime.now(datetime.timezone.utc),
-            "created_at": datetime.datetime.now(datetime.timezone.utc)
+            "branch_id": ObjectId(user.branch_id) if hasattr(user, 'branch_id') else None,
+            "belt_history": [] # Multi-record log array for Module 8 tracking extensions
         }
-        
-        result = db['students'].insert_one(new_student)
-        
-        return Response({
-            "message": "Student profile successfully registered to branch.",
-            "student_id": str(result.inserted_id)
-        }, status=status.HTTP_201_CREATED)
+
+        try:
+            result = db['students'].insert_one(student_document)
+            return Response({
+                "message": "Student profile admitted successfully into master registry system.",
+                "id": str(result.inserted_id),
+                "student_id": student_document["student_id"]
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": f"Commit verification transaction failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

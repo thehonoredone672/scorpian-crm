@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Document Vault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FAFAFA; color: #111111; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black relative">
+
+    <script>
+        const token = localStorage.getItem('scorp_token');
+        if (!token) window.location.href = 'login.html';
+    </script>
+
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-30 md:hidden" onclick="toggleMobileSidebar()"></div>
+
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-60 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-40 transform -translate-x-full transition-transform duration-200 md:relative md:translate-x-0">
+        <div class="py-5 px-5 flex items-center justify-between border-b border-white/5">
+            <div class="flex items-center gap-2"><div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black"><i class="ph-fill ph-shield-check text-[11px]"></i></div><h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1></div>
+            <button onclick="toggleMobileSidebar()" class="text-gray-400 hover:text-white md:hidden p-1"><i class="ph ph-caret-left text-lg"></i></button>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-squares-four text-base"></i> Overview Metrics</a>
+            <a href="leads.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-funnel text-base"></i> Lead Management</a>
+            <a href="students.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-student text-base"></i> Students</a>
+            <a href="batches.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-calendar text-base"></i> Batch Management</a>
+            <a href="attendance.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-notebook text-base"></i> Attendance Log</a>
+            <a href="fees.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-wallet text-base"></i> Fee Accounting</a>
+            <a href="exams.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-certificate text-base"></i> Belt Examinations</a>
+            <a href="events.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-trophy text-base"></i> Event Management</a>
+            <a href="vault.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium"><i class="ph-fill ph-folder text-base"></i> Document Vault</a>
+            <a href="settings.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-gear text-base"></i> Settings Configuration</a>
+        </nav>
+        <div class="p-4 border-t border-white/5"><button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white text-left"><i class="ph ph-sign-out text-base"></i> Terminate Link</button></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0">
+            <h2 class="font-semibold text-xs uppercase tracking-widest text-gray-400">Compliance Documents & Verification Vault</h2>
+        </header>
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-4">
+            <div class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="ph ph-file-text text-xl text-gray-600"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Aadhaar Verification Manifest</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Masked & encrypted for local privacy parameters</p>
+                    </div>
+                </div>
+                <button class="text-xs font-medium text-gray-500 hover:text-black">View logs</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function toggleMobileSidebar() {
+            document.getElementById('mainSidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarBackdrop').classList.toggle('hidden');
+        }
+        document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
+    </script>
+</body>
+</html>

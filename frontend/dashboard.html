@@ -3,148 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scorpion Academy | CRM Overview</title>
+    <title>Scorpion Academy | Overview Metrics</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #FAFAFA; color: #111111; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black">
+<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black relative">
 
     <script>
         const token = localStorage.getItem('scorp_token');
         if (!token) window.location.href = 'login.html';
     </script>
 
-    <aside class="w-56 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-20">
-        <div class="py-5 px-5 flex items-center gap-2">
-            <div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black">
-                <i class="ph-fill ph-rocket-launch text-[10px]"></i>
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-30 md:hidden" onclick="toggleMobileSidebar()"></div>
+
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-60 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-40 transform -translate-x-full transition-transform duration-200 md:relative md:translate-x-0">
+        <div class="py-5 px-5 flex items-center justify-between border-b border-white/5">
+            <div class="flex items-center gap-2">
+                <div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black">
+                    <i class="ph-fill ph-shield-check text-[11px]"></i>
+                </div>
+                <div class="leading-none">
+                    <h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1>
+                    <p class="text-[10px] text-gray-500 font-medium mt-0.5 uppercase tracking-wider">Control Panel</p>
+                </div>
             </div>
-            <div class="leading-none">
-                <h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1>
-                <p class="text-[10px] text-gray-400 font-medium mt-0.5">CRM Architecture</p>
-            </div>
+            <button onclick="toggleMobileSidebar()" class="text-gray-400 hover:text-white md:hidden p-1"><i class="ph ph-caret-left text-lg"></i></button>
         </div>
 
         <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
             <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium">
-                <i class="ph-fill ph-squares-four text-base"></i> Overview
+                <i class="ph-fill ph-squares-four text-base"></i> Overview Metrics
             </a>
-            <a href="roster.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
-                <i class="ph ph-users text-base"></i> Active Roster
+            <a href="leads.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium">
+                <i class="ph ph-funnel text-base"></i> Lead Management
             </a>
-            <a href="schedule.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
-                <i class="ph ph-calendar-blank text-base"></i> Class Schedule
+            <a href="students.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium">
+                <i class="ph ph-student text-base"></i> Students
             </a>
-            <a href="ledger.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors">
-                <i class="ph ph-wallet text-base"></i> Financial Ledger
+            <a href="batches.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium">
+                <i class="ph ph-calendar text-base"></i> Batch Management
+            </a>
+            <a href="attendance.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium">
+                <i class="ph ph-notebook text-base"></i> Attendance Log
+            </a>
+            <a href="fees.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium">
+                <i class="ph ph-wallet text-base"></i> Fee Accounting
+            </a>
+            <a href="exams.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium">
+                <i class="ph ph-certificate text-base"></i> Belt Examinations
             </a>
         </nav>
 
-        <div class="p-4 flex flex-col gap-4">
+        <div class="p-4 flex flex-col gap-4 border-t border-white/5">
             <div class="px-2">
-                <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">Clearance</p>
-                <p id="roleDisplay" class="text-xs font-semibold text-gray-300">Loading...</p>
+                <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">Authorization Role</p>
+                <p id="roleDisplay" class="text-xs font-semibold text-gray-300">...</p>
             </div>
             <button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors text-left">
-                <i class="ph ph-sign-out text-base"></i> Sign out
+                <i class="ph ph-sign-out text-base"></i> Terminate Link
             </button>
-            <div class="pt-3 border-t border-white/10 px-2">
-                <p class="text-[10px] text-gray-500">
-                    Developed by <br>
-                    <a href="https://dexys.in" target="_blank" class="font-medium text-gray-400 hover:text-white transition-colors">Dexys IT Solutions</a>
-                </p>
+            <div class="pt-3 border-t border-white/5 px-2">
+                <p class="text-[10px] text-gray-500 leading-relaxed">Developed by <br><a href="https://dexys.in" target="_blank" class="font-medium text-gray-400 hover:text-white transition-colors">Dexys IT Solutions</a></p>
             </div>
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen relative z-10">
-        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md shrink-0">
-            <h2 class="font-medium text-sm text-gray-800">System Overview</h2>
-            <div class="text-xs text-gray-500 font-medium" id="currentDate"></div>
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleMobileSidebar()" class="p-1.5 bg-gray-50 border border-gray-200 text-black rounded-md md:hidden hover:bg-gray-100 transition-colors"><i class="ph ph-list text-base"></i></button>
+                <h2 class="font-semibold text-xs uppercase tracking-widest text-gray-400">Overview Panel</h2>
+            </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-8 max-w-6xl w-full mx-auto">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                <div class="p-5 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col">
-                    <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">Active Branches</p>
-                    <h3 class="text-2xl font-semibold tracking-tight text-black" id="metricBranches">-</h3>
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div class="p-5 bg-white border border-gray-200 rounded-xl shadow-sm">
+                    <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">Total Active Students</p>
+                    <h3 class="text-2xl font-semibold tracking-tight" id="dashTotalStudents">—</h3>
                 </div>
-                <div class="p-5 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col">
-                    <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">Enrolled Students</p>
-                    <h3 class="text-2xl font-semibold tracking-tight text-black" id="metricStudents">-</h3>
+                <div class="p-5 bg-white border border-gray-200 rounded-xl shadow-sm">
+                    <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">Pipeline Ledger Balance</p>
+                    <h3 class="text-2xl font-semibold tracking-tight text-gray-900" id="dashTotalRevenue">₹0.00</h3>
                 </div>
-                <div class="p-5 bg-[#0A0A0A] border border-black rounded-xl shadow-sm flex flex-col justify-between">
-                    <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">Database Link</p>
-                    <div class="flex items-center gap-2 mt-1">
-                        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                        <h3 class="text-sm font-medium text-white">Cloud Synced</h3>
+                <div class="p-5 bg-white border border-gray-200 rounded-xl shadow-sm sm:col-span-2 md:col-span-1">
+                    <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">Sync Pipeline State</p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span class="font-medium text-xs text-gray-800">Cluster Verified</span>
                     </div>
-                </div>
-            </div>
-
-            <div class="mb-4 flex items-center justify-between">
-                <h3 class="text-sm font-medium text-gray-800">Live Franchise Locations</h3>
-            </div>
-            
-            <div id="branchesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="col-span-full py-10 text-gray-500 flex items-center gap-2 text-xs">
-                    <i class="ph ph-spinner animate-spin text-base"></i> Fetching parameters...
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-        const role = localStorage.getItem('scorp_role');
-        document.getElementById('roleDisplay').innerText = role ? role.replace('_', ' ') : 'Unknown';
         const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+        function toggleMobileSidebar() {
+            document.getElementById('mainSidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarBackdrop').classList.toggle('hidden');
+        }
 
-        async function fetchLiveArchitecture() {
-            const grid = document.getElementById('branchesGrid');
+        async function loadOverviewMetrics() {
             try {
-                const [branchRes, studentRes] = await Promise.all([
-                    fetch('http://127.0.0.1:8000/api/branches/', { headers: authHeaders }),
-                    fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders })
+                const [studentsRes, ledgerRes] = await Promise.all([
+                    fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders }),
+                    fetch('http://127.0.0.1:8000/api/finance/ledger/', { headers: authHeaders })
                 ]);
-                if (branchRes.ok && studentRes.ok) {
-                    const branches = await branchRes.json();
-                    const students = await studentRes.json();
-                    document.getElementById('metricBranches').textContent = branches.length;
-                    document.getElementById('metricStudents').textContent = students.length;
-                    grid.innerHTML = '';
-                    if (branches.length === 0) { grid.innerHTML = `<p class="text-gray-500 text-xs">No branches detected.</p>`; return; }
-                    branches.forEach(branch => {
-                        const card = `
-                            <div class="p-5 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all group relative cursor-pointer">
-                                <div class="absolute top-4 right-4 flex items-center gap-1.5">
-                                    <div class="w-1.5 h-1.5 rounded-full ${branch.status === 'ACTIVE' ? 'bg-[#0A0A0A]' : 'bg-gray-300'}"></div>
-                                    <span class="text-[10px] font-medium text-gray-500 uppercase">${branch.status}</span>
-                                </div>
-                                <h4 class="text-sm font-semibold text-gray-900 mb-0.5">${branch.name}</h4>
-                                <p class="text-[11px] font-mono text-gray-500 mb-4">${branch.branch_code}</p>
-                                <div class="pt-3 border-t border-gray-100 flex justify-between items-center text-[11px] text-gray-600">
-                                    <p>City: <span class="font-medium text-gray-900">${branch.address.city}</span></p>
-                                    <i class="ph ph-arrow-right text-gray-400 group-hover:text-black transition-colors text-sm"></i>
-                                </div>
-                            </div>
-                        `;
-                        grid.innerHTML += card;
-                    });
+                if (studentsRes.ok && ledgerRes.ok) {
+                    const students = await studentsRes.json();
+                    const ledger = await ledgerRes.json();
+                    document.getElementById('dashTotalStudents').textContent = students.length;
+                    let balanceSum = ledger.reduce((acc, curr) => acc + (curr.type === 'DEBIT' ? parseFloat(curr.amount) : -parseFloat(curr.amount)), 0);
+                    document.getElementById('dashTotalRevenue').textContent = `₹${balanceSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
                 }
-            } catch (err) { grid.innerHTML = `<p class="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-md border border-red-100 inline-block">API Connection Refused</p>`; }
+            } catch (err) { console.error(err); }
         }
 
         document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
-        fetchLiveArchitecture();
+        const role = localStorage.getItem('scorp_role');
+        document.getElementById('roleDisplay').textContent = role ? role.replace('_', ' ') : 'VISITOR';
+        loadOverviewMetrics();
     </script>
 </body>
 </html>

@@ -8,105 +8,75 @@ import datetime
 
 class LiveAttendanceCheckInView(APIView):
     """
-    Processes real-time class check-ins and evaluates promotion thresholds.
+    Core API Controller for SRS Module 6 (Attendance Management).
+    Handles loading student roll-calls for a batch and saving daily logs.
     """
     authentication_classes = [MongoJWTAuthentication]
 
-    def post(self, request, session_id):
-        user = request.user
-        data = request.data
-        student_id_str = data.get('student_id')
-        attendance_status = data.get('status', 'PRESENT') # PRESENT, ABSENT, EXCUSED
-
-        if not student_id_str:
-            return Response({"error": "student_id parameter is required for check-in."}, status=status.HTTP_400_BAD_REQUEST)
-
+    def get(self, request, session_id):
+        """Fetches all students assigned to the batch linked to this session."""
         try:
-            session_obj_id = ObjectId(session_id)
-            student_obj_id = ObjectId(student_id_str)
-        except Exception:
-            return Response({"error": "Invalid parameters: Malformed ObjectId string."}, status=status.HTTP_400_BAD_REQUEST)
+            # 1. Find the session to know which batch we are marking attendance for
+            session = db['sessions'].find_one({"_id": ObjectId(session_id)})
+            if not session:
+                return Response({"error": "Active session instance not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # 1. Fetch target session record
-        session = db['sessions'].find_one({"_id": session_obj_id})
-        if not session:
-            return Response({"error": "Target class session instance not found."}, status=status.HTTP_404_NOT_FOUND)
+            # 2. Query students belonging to this branch and assigned to this batch
+            query = {"branch_id": session.get("branch_id")}
+            
+            # If your student document maps to a batch_id, filter by it
+            if "batch_id" in session:
+                query["batch_id"] = session["batch_id"]
 
-        # 2. Security Tenant Boundary Check
-        if user.role == 'BRANCH_MANAGER' and str(session['branch_id']) != user.branch_id:
-            return Response({"error": "Unauthorized: Target session belongs to a different branch silo."}, status=status.HTTP_403_FORBIDDEN)
+            students_cursor = db['students'].find(query)
+            roll_call_list = []
 
-        # 3. Guard against double-logging the same student for the same class
-        db['sessions'].update_one(
-            {"_id": session_obj_id},
-            {"$pull": {"attendance_records": {"student_id": student_obj_id}}}
-        )
-
-        # 4. Inject the fresh check-in log record
-        check_in_entry = {
-            "student_id": student_obj_id,
-            "status": attendance_status,
-            "marked_by": ObjectId(user.id),
-            "timestamp": datetime.datetime.now(datetime.timezone.utc)
-        }
-
-        db['sessions'].update_one(
-            {"_id": session_obj_id},
-            {"$push": {"attendance_records": check_in_entry}}
-        )
-
-        # =========================================================================
-        # PROMOTION LOGIC ENGINE (AUTOMATED EVALUATION CORNERSTONE)
-        # =========================================================================
-        sport_id = session['sport_id']
-        branch_id = session['branch_id']
-
-        # Fetch student's current enrollment record for this specific sport
-        enrollment = db['enrollments'].find_one({"student_id": student_obj_id, "sport_id": sport_id})
-        if not enrollment:
-            return Response({"message": "Attendance tracked successfully. (No sport enrollment found for auto-promotion evaluation)."}, status=status.HTTP_200_OK)
-
-        current_level_id = enrollment.get('current_level_id')
-        current_level = db['progression_levels'].find_one({"_id": current_level_id}) if current_level_id else None
-
-        if current_level:
-            # Calculate metrics: total scheduled classes vs total classes attended by this student
-            total_sessions = db['sessions'].count_documents({"batch_id": session['batch_id'], "status": "SCHEDULED"})
-            attended_sessions = db['sessions'].count_documents({
-                "batch_id": session['batch_id'],
-                "attendance_records": {"$elemMatch": {"student_id": student_obj_id, "status": "PRESENT"}}
-            })
-
-            attendance_pct = (attended_sessions / total_sessions * 100) if total_sessions > 0 else 0
-            required_pct = current_level.get('requirements', {}).get('required_attendance_pct', 80)
-
-            # Check if promotion requirements are met
-            if attendance_pct >= required_pct:
-                # Find the next progressive rank tier (level_order + 1)
-                next_level = db['progression_levels'].find_one({
-                    "sport_id": sport_id,
-                    "level_order": current_level['level_order'] + 1
+            for student in students_cursor:
+                # Check if attendance was already marked for this student in this session
+                existing_log = db['attendance'].find_one({
+                    "session_id": ObjectId(session_id),
+                    "student_id": student["_id"]
                 })
 
-                if next_level:
-                    # Update enrollment document to reflect the auto-promotion tier swap
-                    db['enrollments'].update_one(
-                        {"_id": enrollment['_id']},
-                        {
-                            "$set": {
-                                "current_level_id": next_level['_id'],
-                                "last_promoted_at": datetime.datetime.now(datetime.timezone.utc)
-                            }
-                        }
-                    )
-                    return Response({
-                        "message": "Attendance recorded. Core metrics analyzed.",
-                        "attendance_percentage": f"{attendance_pct:.1f}%",
-                        "status": f"🏆 CONGRATULATIONS! Student promoted to {next_level['level_name']}!"
-                    }, status=status.HTTP_200_OK)
+                roll_call_list.append({
+                    "student_id": str(student["_id"]),
+                    "name": f"{student.get('first_name')} {student.get('last_name')}",
+                    "current_belt": student.get("current_belt", "WHITE"),
+                    "status": existing_log.get("status", "NOT_MARKED") if existing_log else "NOT_MARKED"
+                })
 
-        return Response({
-            "message": "Attendance tracked cleanly.",
-            "attendance_percentage": f"{(attended_sessions / total_sessions * 100 if total_sessions > 0 else 0):.1f}%",
-            "status": "Requirements for promotion pending."
-        }, status=status.HTTP_200_OK)
+            return Response(roll_call_list, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Failed to load roll-call: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request, session_id):
+        """Commits an attendance log entry for a specific student."""
+        data = request.data
+        student_id = data.get("student_id")
+        attendance_status = data.get("status") # EXPECTS: "PRESENT", "ABSENT", or "LEAVE"
+
+        if not student_id or not attendance_status:
+            return Response({"error": "Missing parameter records: student_id and status required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if attendance_status not in ["PRESENT", "ABSENT", "LEAVE"]:
+            return Response({"error": "Invalid status value provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Upsert entry into the attendance logs collection
+            db['attendance'].update_one(
+                {
+                    "session_id": ObjectId(session_id),
+                    "student_id": ObjectId(student_id)
+                },
+                {
+                    "$set": {
+                        "status": attendance_status,
+                        "date": datetime.date.today().isoformat(),
+                        "timestamp": datetime.datetime.utcnow()
+                    }
+                },
+                upsert=True
+            )
+            return Response({"message": "Attendance record committed successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Database write failure: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Students Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FAFAFA; color: #111111; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+        input:focus, select:focus { outline: none; border-color: #000; box-shadow: 0 0 0 1px #000; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black relative">
+
+    <script>
+        const token = localStorage.getItem('scorp_token');
+        if (!token) window.location.href = 'login.html';
+    </script>
+
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-30 md:hidden" onclick="toggleMobileSidebar()"></div>
+
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-60 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-40 transform -translate-x-full transition-transform duration-200 md:relative md:translate-x-0">
+        <div class="py-5 px-5 flex items-center justify-between border-b border-white/5">
+            <div class="flex items-center gap-2">
+                <div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black"><i class="ph-fill ph-shield-check text-[11px]"></i></div>
+                <h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1>
+            </div>
+            <button onclick="toggleMobileSidebar()" class="text-gray-400 hover:text-white md:hidden p-1"><i class="ph ph-caret-left text-lg"></i></button>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-squares-four text-base"></i> Overview Metrics</a>
+            <a href="leads.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-funnel text-base"></i> Lead Management</a>
+            <a href="students.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium"><i class="ph-fill ph-student text-base"></i> Students</a>
+            <a href="batches.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-calendar text-base"></i> Batch Management</a>
+            <a href="attendance.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-notebook text-base"></i> Attendance Log</a>
+            <a href="fees.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-wallet text-base"></i> Fee Accounting</a>
+            <a href="exams.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-certificate text-base"></i> Belt Examinations</a>
+        </nav>
+        <div class="p-4 border-t border-white/5"><button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white text-left"><i class="ph ph-sign-out text-base"></i> Terminate Link</button></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0 gap-4">
+            <div class="flex items-center gap-3 w-full max-w-xl">
+                <button onclick="toggleMobileSidebar()" class="p-1.5 bg-gray-50 border border-gray-200 md:hidden rounded-md"><i class="ph ph-list text-base"></i></button>
+                <div class="relative w-full max-w-xs">
+                    <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="studentSearch" onkeyup="searchStudents()" placeholder="Search students index..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs focus:bg-white">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="exportStudents()" class="border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors">
+                    <i class="ph ph-download"></i> Export CSV
+                </button>
+                <button onclick="openStudentModal()" class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"><i class="ph ph-plus font-bold"></i> Admit Student</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="bg-gray-50/50 text-[11px] font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                            <th class="px-5 py-3">Student Profile</th>
+                            <th class="px-5 py-3">Martial Arts System</th>
+                            <th class="px-5 py-3">Emergency Contact</th>
+                            <th class="px-5 py-3 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody" class="divide-y divide-gray-100 text-xs"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="modalBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-40" onclick="closeStudentModal()"></div>
+    <div id="studentModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Admit Student Form</h3>
+                <button onclick="closeStudentModal()" class="text-gray-400 hover:text-black"><i class="ph ph-x text-base"></i></button>
+            </div>
+            <form id="studentForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">First Name *</label><input type="text" id="s_first" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Last Name *</label><input type="text" id="s_last" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">DOB</label><input type="date" id="s_dob" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Blood Group</label><input type="text" id="s_blood" placeholder="O+" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Primary Mobile *</label><input type="text" id="s_phone" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Parent Name</label><input type="text" id="s_parent" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Style Path</label><input type="text" id="s_style" placeholder="Karate / Silambam" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Belt Level Tier</label><select id="s_belt" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"><option value="WHITE">White Belt</option><option value="YELLOW">Yellow Belt</option><option value="GREEN">Green Belt</option><option value="BLACK">Black Belt</option></select></div>
+                </div>
+                <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-medium py-2 rounded-md text-xs transition-colors mt-2">Admit Record</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="drawerBackdrop" class="fixed inset-0 bg-gray-900/20 backdrop-blur-[1px] hidden z-40" onclick="closeDrawer()"></div>
+    <div id="profileDrawer" class="fixed inset-y-0 right-0 w-full max-w-[420px] bg-white border-l border-gray-200 shadow-2xl z-50 translate-x-full transition-transform duration-200 ease-in-out flex flex-col">
+        <div class="h-14 px-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+            <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Student Registry Information</h3>
+            <button onclick="closeDrawer()" class="text-gray-400 hover:text-black p-1"><i class="ph ph-x text-base"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <div>
+                <h2 id="dName" class="text-lg font-semibold text-gray-900 tracking-tight">—</h2>
+                <p id="dId" class="text-[11px] font-mono text-gray-400 mt-0.5 uppercase"></p>
+            </div>
+            <div class="pt-4 border-t border-gray-100">
+                <h4 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Identification Vault</h4>
+                <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-[11px] text-gray-500 font-medium">
+                    National ID document status: <span class="font-bold text-black uppercase ml-1">Masked & Protected</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+        
+        function toggleMobileSidebar() {
+            document.getElementById('mainSidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarBackdrop').classList.toggle('hidden');
+        }
+        function openStudentModal() { document.getElementById('studentModal').classList.remove('hidden'); document.getElementById('modalBackdrop').classList.remove('hidden'); }
+        function closeStudentModal() { document.getElementById('studentModal').classList.add('hidden'); document.getElementById('modalBackdrop').classList.add('hidden'); document.getElementById('studentForm').reset(); }
+        
+        function closeDrawer() {
+            document.getElementById('drawerBackdrop').classList.add('hidden');
+            document.getElementById('profileDrawer').classList.add('translate-x-full');
+        }
+
+        async function loadStudentsData() {
+            const body = document.getElementById('studentsTableBody');
+            body.innerHTML = `<tr><td colspan="4" class="p-5 text-gray-400 text-center animate-pulse">Syncing student cluster payload...</td></tr>`;
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders });
+                if(res.ok) {
+                    const students = await res.json();
+                    body.innerHTML = '';
+                    if(students.length === 0) { 
+                        body.innerHTML = `<tr><td colspan="4" class="p-5 text-center text-gray-400">No active records found inside storage partition.</td></tr>`; 
+                        return;
+                    }
+                    
+                    students.reverse().forEach(s => {
+                        const fullName = `${s.first_name} ${s.last_name}`;
+                        body.innerHTML += `
+                            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer group" onclick="openStudentDrawer('${fullName}', '${s.id}')">
+                                <td class="px-5 py-3 font-medium text-gray-900 group-hover:text-black">${fullName}</td>
+                                <td class="px-5 py-3 text-gray-700">${s.style || 'Unassigned'} — <span class="font-semibold text-[10px] tracking-wide">${s.current_belt || 'WHITE'} BELT</span></td>
+                                <td class="px-5 py-3 text-gray-500 font-mono">${s.phone || '—'}</td>
+                                <td class="px-5 py-3 text-right"><span class="px-2 py-0.5 bg-black text-white rounded text-[10px] font-medium tracking-wider uppercase">ACTIVE</span></td>
+                            </tr>`;
+                    });
+                }
+            } catch(e) { 
+                body.innerHTML = `<tr><td colspan="4" class="p-5 text-red-500 text-center">Read execution failure. Ensure Django backend is running.</td></tr>`; 
+            }
+        }
+
+        async function exportStudents() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/export/students/', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `scorpion_students_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }
+            } catch (err) { console.error("Export failure:", err); }
+        }
+
+        function openStudentDrawer(name, id) {
+            document.getElementById('dName').textContent = name;
+            document.getElementById('dId').textContent = `Cloud ID: ${id}`;
+            
+            document.getElementById('drawerBackdrop').classList.remove('hidden');
+            document.getElementById('profileDrawer').classList.remove('translate-x-full');
+        }
+
+        document.getElementById('studentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const payload = {
+                first_name: document.getElementById('s_first').value,
+                last_name: document.getElementById('s_last').value,
+                dob: document.getElementById('s_dob').value,
+                blood_group: document.getElementById('s_blood').value,
+                phone: document.getElementById('s_phone').value,
+                parent_name: document.getElementById('s_parent').value,
+                style: document.getElementById('s_style').value,
+                current_belt: document.getElementById('s_belt').value
+            };
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/students/', { method: 'POST', headers: authHeaders, body: JSON.stringify(payload) });
+                if(res.ok) { closeStudentModal(); loadStudentsData(); }
+            } catch(err) { console.error(err); }
+        });
+
+        function searchStudents() {
+            const input = document.getElementById('studentSearch').value.toLowerCase();
+            document.querySelectorAll('#studentsTableBody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(input) ? '' : 'none';
+            });
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
+        loadStudentsData();
+    </script>
+</body>
+</html>
