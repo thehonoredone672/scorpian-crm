@@ -19,7 +19,7 @@ class InvoiceCreatePaymentView(APIView):
         query = {}
 
         # Maintain multi-tenant operational security isolation
-        if user.role in ['BRANCH_MANAGER', 'INSTRUCTOR'] and hasattr(user, 'branch_id'):
+        if user.role != 'SUPER_ADMIN' and hasattr(user, 'branch_id'):
             query["branch_id"] = ObjectId(user.branch_id)
 
         try:
@@ -30,6 +30,7 @@ class InvoiceCreatePaymentView(APIView):
                 ledger_payload.append({
                     "_id": str(tx.get('_id')),
                     "student_id": str(tx.get('student_id')),
+                    "branch_id": str(tx.get('branch_id')) if tx.get('branch_id') else None,
                     "amount": float(tx.get('amount', 0.00)),
                     "type": tx.get('type', 'DEBIT'), # DEBIT = Invoice Issued, CREDIT = Payment Paid
                     "payment_mode": tx.get('payment_mode', 'UPI'), # UPI, CASH, BANK_TRANSFER, CARD

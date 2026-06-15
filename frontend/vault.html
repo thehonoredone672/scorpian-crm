@@ -28,7 +28,7 @@
             <button onclick="toggleMobileSidebar()" class="text-gray-400 hover:text-white md:hidden p-1"><i class="ph ph-caret-left text-lg"></i></button>
         </div>
         <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-squares-four text-base"></i> Overview Metrics</a>
+            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-squares-four text-base"></i> Dashboard</a>
             <a href="leads.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-funnel text-base"></i> Lead Management</a>
             <a href="students.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-student text-base"></i> Students</a>
             <a href="batches.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-calendar text-base"></i> Batch Management</a>
@@ -39,7 +39,18 @@
             <a href="vault.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium"><i class="ph-fill ph-folder text-base"></i> Document Vault</a>
             <a href="settings.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-gear text-base"></i> Settings Configuration</a>
         </nav>
-        <div class="p-4 border-t border-white/5"><button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white text-left"><i class="ph ph-sign-out text-base"></i> Terminate Link</button></div>
+        <div class="px-5 mb-3">
+            <div class="p-3 bg-white/5 border border-white/10 rounded-lg">
+                <p id="profile-name" class="text-white font-medium text-xs"></p>
+                <p id="profile-role" class="text-gray-400 font-mono text-[10px] uppercase block tracking-wider mt-0.5"></p>
+            </div>
+        </div>
+        <div class="p-4 border-t border-white/5">
+            <button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white text-left"><i class="ph ph-sign-out text-base"></i> Log Out</button>
+        </div>
+        <div class="px-5 pb-4 text-center">
+            <p class="text-[10px] text-gray-600">Developed by <a href="https://dexys.in" target="_blank" class="hover:text-gray-400 transition-colors">Dexys IT Solutions</a></p>
+        </div>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
@@ -66,6 +77,8 @@
             document.getElementById('sidebarBackdrop').classList.toggle('hidden');
         }
         document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
+        document.getElementById('profile-name').textContent = localStorage.getItem('scorp_name') || 'User';
+        document.getElementById('profile-role').textContent = localStorage.getItem('scorp_role') || 'Staff';
     </script>
 </body>
 </html>

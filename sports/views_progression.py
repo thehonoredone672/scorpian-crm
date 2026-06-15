@@ -3,69 +3,84 @@ from rest_framework.response import Response
 from rest_framework import status
 from database.mongodb_client import db
 from accounts.authentication import MongoJWTAuthentication
-from accounts.permissions import IsSuperAdmin
 from bson import ObjectId
+import datetime
 
 class ProgressionEngineView(APIView):
     """
-    Handles dynamic, code-free ranking matrices for individual sports.
+    Core API Controller for SRS Module 8 (Belt Examinations & Rank Progression).
+    Evaluates promotional readiness and registers belt promotions inside MongoDB.
     """
     authentication_classes = [MongoJWTAuthentication]
 
-    def get(self, request, sport_id):
-        """Fetches all ranking tiers for a specified sport, ordered sequentially."""
+    def get(self, request):
+        """Scans student records to compile a multi-tenant list of rank eligibility."""
+        user = request.user
+        query = {"status": "ACTIVE"}
+
+        # Enforce strict branch tenant security isolation boundaries
+        if user.role in ['BRANCH_MANAGER', 'INSTRUCTOR'] and hasattr(user, 'branch_id'):
+            query["branch_id"] = ObjectId(user.branch_id)
+
         try:
-            sport_obj_id = ObjectId(sport_id)
-        except Exception:
-            return Response({"error": "Malformed String: Invalid Sport ID format."}, status=status.HTTP_400_BAD_REQUEST)
+            students_cursor = db['students'].find(query)
+            eligibility_manifest = []
 
-        progression_collection = db['progression_levels']
-        # Fetch rankings and sort them sequentially using MongoDB's .sort()
-        cursor = progression_collection.find({"sport_id": sport_obj_id}).sort("level_order", 1)
-        
-        levels = []
-        for level in cursor:
-            level['_id'] = str(level['_id'])
-            level['sport_id'] = str(level['sport_id'])
-            levels.append(level)
-            
-        return Response(levels, status=status.HTTP_200_OK)
+            for student in students_cursor:
+                student_id = student["_id"]
+                
+                # Dynamic Evaluation Parameter: Count total present sessions in the attendance collection
+                present_count = db['attendance'].count_documents({
+                    "student_id": student_id,
+                    "status": "PRESENT"
+                })
 
-    def post(self, request, sport_id):
-        """Allows creation of unique progression levels linked to a specific sport."""
-        if not IsSuperAdmin().has_permission(request, self):
-            return Response({"error": "Privileged Action Restricted to Super Admin."}, status=status.HTTP_403_FORBIDDEN)
-            
-        try:
-            sport_obj_id = ObjectId(sport_id)
-        except Exception:
-            return Response({"error": "Invalid Sport ID mapping target parameter."}, status=status.HTTP_400_BAD_REQUEST)
+                # Business Rule Check: If they have attended at least 1 session, label them ELIGIBLE
+                # (You can scale this number to 24+ sessions later based on your requirements)
+                is_eligible = present_count >= 1 
 
-        # Confirm the parent sport actually exists first
-        if not db['sports'].find_one({"_id": sport_obj_id}):
-            return Response({"error": "Parent sport engine mapping target not found."}, status=status.HTTP_444_NOT_RESPONSE if hasattr(status, 'HTTP_444_NOT_RESPONSE') else status.HTTP_404_NOT_FOUND)
+                eligibility_manifest.append({
+                    "id": str(student_id),
+                    "name": f"{student.get('first_name')} {student.get('last_name')}",
+                    "current_belt": student.get('current_belt', 'WHITE'),
+                    "attendance_count": present_count,
+                    "status": "ELIGIBLE" if is_eligible else "PENDING_HOURS"
+                })
 
+            return Response(eligibility_manifest, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Failed to compute progression metrics: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request):
+        """Promotes a student to their next targeted belt tier and logs their martial arts rank history."""
         data = request.data
-        level_name = data.get('level_name')
-        level_order = data.get('level_order') # Integer ordering tier (e.g. 1=White, 2=Yellow)
-        minimum_months = data.get('minimum_months', 0)
-        attendance_pct = data.get('required_attendance_pct', 80)
+        student_id = data.get('student_id')
+        next_belt = data.get('next_belt') # EXPECTS: "YELLOW", "GREEN", "BROWN", "BLACK"
 
-        if not level_name or level_order is None:
-            return Response({"error": "Missing level structural tracking attributes: level_name, level_order"}, status=status.HTTP_400_BAD_REQUEST)
+        if not student_id or not next_belt:
+            return Response({"error": "Missing promotion parameters: student_id and next_belt are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        new_level = {
-            "sport_id": sport_obj_id,
-            "level_name": level_name.strip(),
-            "level_order": int(level_order),
-            "requirements": {
-                "minimum_months": int(minimum_months),
-                "required_attendance_pct": int(attendance_pct)
-            }
-        }
+        try:
+            # Atomic update transaction: update current belt status and push an immutable entry into the history log array
+            result = db['students'].update_one(
+                {"_id": ObjectId(student_id)},
+                {
+                    "$set": {
+                        "current_belt": next_belt.upper()
+                    },
+                    "$push": {
+                        "belt_history": {
+                            "belt": next_belt.upper(),
+                            "promoted_on": datetime.datetime.utcnow().isoformat(),
+                            "authorized_by": str(request.user.id if hasattr(request.user, 'id') else 'SYSTEM')
+                        }
+                    }
+                }
+            )
 
-        result = db['progression_levels'].insert_one(new_level)
-        return Response({
-            "message": "Progression level structural metric mapped successfully.",
-            "level_id": str(result.inserted_id)
-        }, status=status.HTTP_201_CREATED)
+            if result.matched_count == 0:
+                return Response({"error": "Student record matching target ID not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            return Response({"message": f"Promotion successful. Student rank upgraded to {next_belt} Belt."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Failed to record rank transaction entry: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

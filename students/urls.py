@@ -1,11 +1,19 @@
 # Location: students/urls.py
 
 from django.urls import path
+from .views_enrollments import StudentEnrollmentView
 from .views import StudentDirectoryView
-from students.views_export import EnterpriseDataExportView
+from .views_export import EnterpriseDataExportView  # Import your export engine view
+from .views_history import StudentHistoryView
 
 urlpatterns = [
-    # Combines with root namespace to route traffic directly to: /api/students/
-    path('', StudentDirectoryView.as_view(), name='student-directory-root'),
-    path('api/export/<str:target_module>/', EnterpriseDataExportView.as_view(), name='enterprise_data_exporter'),
+    # Resolves: /api/students/
+    path('', StudentDirectoryView.as_view(), name='student_directory_root'),
+    
+    # Resolves: /api/students/export/
+    # Note: Updated frontend fetch destination below to match this clean standard!
+    path('export/', EnterpriseDataExportView.as_view(), {'target_module': 'students'}, name='export_students_data'),
+
+    path('', StudentDirectoryView.as_view(), name='student_directory'),
+    path('<str:student_id>/history/', StudentHistoryView.as_view(), name='student_history'),
 ]

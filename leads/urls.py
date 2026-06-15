@@ -2,8 +2,12 @@
 
 from django.urls import path
 from .views import LeadPipelineView
+from students.views_export import EnterpriseDataExportView # Point to your global export engine
 
 urlpatterns = [
-    # This combines with the root path to form exactly: /api/leads/
-    path('leads/', LeadPipelineView.as_view(), name='lead-pipeline'),
+    # Resolves: /api/leads/
+    path('leads/', LeadPipelineView.as_view(), name='lead_pipeline_root'),
+    
+    # Resolves: /api/leads/export/
+    path('leads/export/', EnterpriseDataExportView.as_view(), {'target_module': 'leads'}, name='export_leads_data'),
 ]

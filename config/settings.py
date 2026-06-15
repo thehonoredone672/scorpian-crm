@@ -115,14 +115,22 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 9. Framework-Wide REST Integration Behavior Engine Rules
+# Location: config/settings.py
+
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'accounts.authentication.MongoJWTAuthentication',
+        'accounts.authentication.MongoJWTAuthentication', # Your custom engine
     ],
+    
+    # ADD THIS EXPLICIT ROW TO PREVENT FALLBACK BLOCKS:
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny', # Let views handle internal role access logic
+    ],
+    
     'UNAUTHENTICATED_USER': None,
 }
 
