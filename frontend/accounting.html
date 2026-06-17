@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion Academy | Accounting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="./static/css/global.css">
+    <script src="./static/js/app.js"></script>
+</head>
+<body class="flex h-screen overflow-hidden text-[13px] antialiased">
+    <div id="global-sidebar-container" class="h-full shrink-0"></div>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full bg-[#FAFAFA]">
+        <header class="h-14 border-b border-gray-200 flex items-center px-8 bg-white shrink-0">
+            <h2 class="font-semibold text-xs uppercase tracking-widest text-gray-400">Financial Ledger</h2>
+        </header>
+        <div class="flex-1 overflow-y-auto p-8">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="bg-gray-50/50 text-[11px] font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                            <th class="px-5 py-3">Student Name</th>
+                            <th class="px-5 py-3">Fee Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feesBody" class="divide-y divide-gray-100 text-xs"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const authHeaders = { 'Authorization': `Bearer ${localStorage.getItem('scorp_token')}`, 'Content-Type': 'application/json' };
+
+        async function loadFees() {
+            const body = document.getElementById('feesBody');
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders });
+                const students = await res.json();
+                body.innerHTML = '';
+                if(students.length === 0) { body.innerHTML = '<tr><td colspan="2" class="p-5 text-center text-gray-400">No students found.</td></tr>'; return; }
+                
+                students.forEach(s => {
+                    body.innerHTML += `
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-5 py-4 font-medium text-gray-900">${s.first_name} ${s.last_name}</td>
+                            <td class="px-5 py-4">
+                                <form onsubmit="collectFee(event, '${s.id}', '${s.branch_name}')" class="flex items-center gap-2">
+                                    <input type="number" name="amount" placeholder="Amount (₹)" required class="w-32 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-mono">
+                                    <button type="submit" class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors">Record Payment</button>
+                                </form>
+                            </td>
+                        </tr>`;
+                });
+            } catch(e) {}
+        }
+
+        async function collectFee(event, studentId, branchName) {
+            event.preventDefault();
+            const form = event.target;
+            const amount = form.elements.amount.value;
+            const btn = form.querySelector('button');
+            btn.innerText = "Saving...";
+            
+            try {
+                await fetch('http://127.0.0.1:8000/api/finance/ledger/', {
+                    method: 'POST', headers: authHeaders,
+                    body: JSON.stringify({ student_id: studentId, amount: amount, branch_name: branchName })
+                });
+                form.reset();
+                btn.innerText = "Recorded!";
+                btn.classList.replace('bg-black', 'bg-green-600');
+                setTimeout(() => { btn.innerText = "Record Payment"; btn.classList.replace('bg-green-600', 'bg-black'); }, 2000);
+            } catch(e) { btn.innerText = "Error"; }
+        }
+        loadFees();
+    </script>
+</body>
+</html>

@@ -7,54 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #FAFAFA; color: #111111; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
-        input:focus, select:focus { outline: none; border-color: #000; box-shadow: 0 0 0 1px #000; }
-    </style>
+    <link rel="stylesheet" href="./static/css/global.css">
+    <script src="./static/js/app.js"></script>
 </head>
-<body class="flex h-screen overflow-hidden text-[13px] antialiased selection:bg-gray-200 selection:text-black relative">
+<body class="flex h-screen overflow-hidden text-[13px] antialiased">
+    <div id="global-sidebar-container" class="h-full shrink-0"></div>
 
-    <script>
-        const token = localStorage.getItem('scorp_token');
-        if (!token) window.location.href = 'login.html';
-    </script>
-
-    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-30 md:hidden" onclick="toggleMobileSidebar()"></div>
-
-    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-60 bg-[#0A0A0A] border-r border-white/10 flex flex-col shrink-0 z-40 transform -translate-x-full transition-transform duration-200 md:relative md:translate-x-0">
-        <div class="py-5 px-5 flex items-center justify-between border-b border-white/5">
-            <div class="flex items-center gap-2">
-                <div class="w-5 h-5 bg-white rounded-sm flex items-center justify-center text-black"><i class="ph-fill ph-shield-check text-[11px]"></i></div>
-                <h1 class="font-semibold tracking-tight text-sm text-white">Scorpion Academy</h1>
-            </div>
-            <button onclick="toggleMobileSidebar()" class="text-gray-400 hover:text-white md:hidden p-1"><i class="ph ph-caret-left text-lg"></i></button>
-        </div>
-        <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-            <a href="dashboard.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-squares-four text-base"></i> Dashboard</a>
-            <a href="leads.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-funnel text-base"></i> Lead Management</a>
-            <a href="students.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-student text-base"></i> Students</a>
-            <a href="batches.html" class="flex items-center gap-2.5 px-2.5 py-1.5 bg-white/10 text-white rounded-md transition-colors font-medium"><i class="ph-fill ph-calendar text-base"></i> Batch Management</a>
-            <a href="attendance.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-notebook text-base"></i> Attendance Log</a>
-            <a href="fees.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-wallet text-base"></i> Fee Accounting</a>
-            <a href="exams.html" class="flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md transition-colors font-medium"><i class="ph ph-certificate text-base"></i> Belt Examinations</a>
-        </nav>
-        <div class="px-5 mb-3">
-            <div class="p-3 bg-white/5 border border-white/10 rounded-lg">
-                <p id="profile-name" class="text-white font-medium text-xs"></p>
-                <p id="profile-role" class="text-gray-400 font-mono text-[10px] uppercase block tracking-wider mt-0.5"></p>
-            </div>
-        </div>
-        <div class="p-4 border-t border-white/5">
-            <button id="logoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white text-left"><i class="ph ph-sign-out text-base"></i> Log Out</button>
-        </div>
-        <div class="px-5 pb-4 text-center">
-            <p class="text-[10px] text-gray-600">Developed by <a href="https://dexys.in" target="_blank" class="hover:text-gray-400 transition-colors">Dexys IT Solutions</a></p>
-        </div>
-    </aside>
-
-    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full bg-[#FAFAFA]">
         <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0">
             <div class="flex items-center gap-3">
                 <button onclick="toggleMobileSidebar()" class="p-1.5 bg-gray-50 border border-gray-200 md:hidden rounded-md"><i class="ph ph-list text-base"></i></button>
@@ -89,10 +48,6 @@
 
     <script>
         const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-        function toggleMobileSidebar() {
-            document.getElementById('mainSidebar').classList.toggle('-translate-x-full');
-            document.getElementById('sidebarBackdrop').classList.toggle('hidden');
-        }
         function openBatchModal() { document.getElementById('batchModal').classList.remove('hidden'); document.getElementById('modalBackdrop').classList.remove('hidden'); }
         function closeBatchModal() { document.getElementById('batchModal').classList.add('hidden'); document.getElementById('modalBackdrop').classList.add('hidden'); document.getElementById('batchForm').reset(); }
 
@@ -122,9 +77,6 @@
             } catch(e) { grid.innerHTML = `<p class="text-red-500 col-span-full">API Context drop.</p>`; }
         }
 
-        document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
-        document.getElementById('profile-name').textContent = localStorage.getItem('scorp_name') || 'User';
-        document.getElementById('profile-role').textContent = localStorage.getItem('scorp_role') || 'Staff';
         fetchBatches();
     </script>
 </body>

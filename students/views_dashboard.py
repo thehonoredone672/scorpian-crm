@@ -5,124 +5,123 @@ from database.mongodb_client import db
 from accounts.authentication import MongoJWTAuthentication
 from bson import ObjectId
 import datetime
+import math
 
 class UnifiedDashboardMetricsView(APIView):
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
         user = request.user
-        today_date = datetime.date.today().isoformat()
+        current_datetime = datetime.datetime.utcnow()
+        today_date = current_datetime.strftime("%Y-%m-%d")
+        current_month_prefix = current_datetime.strftime("%Y-%m")
+        
+        # 10th DAY RULE CHECK for Delinquency
+        is_past_collection_date = current_datetime.day > 10
 
         try:
-            # 1. Resolve exact Profile Name and Role
+            # 1. Resolve Exact Profile Name (Guarantee Fallback to fix undefined bug)
             user_id = getattr(user, 'id', None) or (user.dict.get('_id') if hasattr(user, 'dict') else None)
-            user_record = None
+            user_record = db.users.find_one({"_id": ObjectId(str(user_id))}) if user_id else None
             
-            if user_id:
-                try:
-                    user_record = db.users.find_one({"_id": ObjectId(str(user_id))})
-                except Exception:
-                    pass
-
             display_name = "Authorized User"
-            if user_record:
-                display_name = user_record.get("name", user_record.get("email", "Authorized User"))
-            else:
-                display_name = getattr(user, 'name', None) or (user.dict.get('name') if hasattr(user, 'dict') else "Authorized User")
-
+            if user_record and user_record.get("name"):
+                display_name = user_record.get("name")
+            elif getattr(user, 'name', None):
+                display_name = getattr(user, 'name')
+            elif user_record and user_record.get("email"):
+                display_name = user_record.get("email").split('@')[0]
+                
             user_role = getattr(user, 'role', 'INSTRUCTOR')
 
-            # 2. Pull raw database snapshots
-            all_students = list(db['students'].find({}))
+            # 2. Pull Database Snapshots
+            all_students = list(db['students'].find({"status": "ACTIVE"}))
+            all_instructors = list(db.users.find({"role": "INSTRUCTOR"}))
             all_attendance = list(db['attendance'].find({"date": today_date}))
-            all_payments = list(db['payments'].find({}))
+            all_payments = list(db['payments'].find({"type": "CREDIT"}))
 
-            # STRICT BRANCH FILTERING: Only show branches that have actual students or staff assigned.
-            # This completely ignores empty dummy branches.
-            active_student_branches = [str(s.get('branch_name')).strip().upper() for s in all_students if s.get('branch_name')]
-            active_staff_branches = [str(u.get('branch_name')).strip().upper() for u in db.users.find({"role": "INSTRUCTOR"}) if u.get('branch_name')]
+            # 3. AGGRESSIVE BRANCH AGGREGATION (Fixes empty dashboard)
+            db_branches = [str(b.get('name')).strip().upper() for b in db['branches'].find({}) if b.get('name')]
+            staff_branches = [str(u.get('branch_name')).strip().upper() for u in all_instructors if u.get('branch_name')]
+            student_branches = [str(s.get('branch_name')).strip().upper() for s in all_students if s.get('branch_name')]
             
-            branch_names = sorted(list(set(active_student_branches + active_staff_branches)))
-
-            # Load sports directory pricing to map individual financial liabilities
-            sports_list = list(db['sports'].find({}))
-            sports_price_map = {
-                str(sport.get('name', '')).strip().lower(): float(sport.get('monthly_fee', 0.00))
-                for sport in sports_list
-            }
+            branch_names = sorted(list(set(db_branches + staff_branches + student_branches)))
 
             def compute_scope_data(filter_branch=None):
-                scope_students = [
-                    s for s in all_students 
-                    if not filter_branch or str(s.get('branch_name', '')).strip().upper() == str(filter_branch).upper()
-                ]
+                scope_students = [s for s in all_students if not filter_branch or str(s.get('branch_name', '')).strip().upper() == str(filter_branch).upper()]
                 scope_student_ids = {s['_id'] for s in scope_students}
 
                 present_count = sum(1 for a in all_attendance if a.get('student_id') in scope_student_ids and a.get('status') == 'PRESENT')
                 absent_count = sum(1 for a in all_attendance if a.get('student_id') in scope_student_ids and a.get('status') == 'ABSENT')
 
-                # Calculate total monthly liability dynamically based on enrolled sports
-                total_expected = 0.00
-                for student in scope_students:
-                    enrolled_programs = student.get('enrolled_sports', [])
-                    if not isinstance(enrolled_programs, list):
-                        enrolled_programs = [student.get('style', 'Karate')]
-                    
-                    student_liability = 0.00
-                    for program in enrolled_programs:
-                        program_clean = str(program).strip().lower()
-                        student_liability += sports_price_map.get(program_clean, 0.00)
-                    
-                    total_expected += student_liability
+                collected_this_month = 0.00
+                pending_this_month = 0.00
+                total_pending_students = 0
+                total_overdue_months = 0
 
-                collected = sum(
-                    float(p.get('amount', 0)) for p in all_payments 
-                    if p.get('type') == 'CREDIT' and (not filter_branch or str(p.get('branch_name', '')).strip().upper() == str(filter_branch).upper())
-                )
-                
-                pending = max(0.00, total_expected - collected)
+                for student in scope_students:
+                    # READ MANUAL FEE DIRECTLY FROM DB (No 2500 Fallback)
+                    monthly_liability = float(student.get('custom_fee', 0.00))
+
+                    student_payments = [p for p in all_payments if p.get('student_id') == str(student['_id']) or p.get('student_id') == student['_id']]
+                    
+                    student_paid_this_month = sum(float(p.get('amount', 0)) for p in student_payments if str(p.get('timestamp', p.get('date', ''))).startswith(current_month_prefix))
+                    collected_this_month += student_paid_this_month
+                    
+                    # Only add to pending if the 10th of the month has passed
+                    if is_past_collection_date:
+                        pending_this_month += max(0.00, monthly_liability - student_paid_this_month)
+
+                    # Historical Delinquency Tracking
+                    enrollment_date = student.get('created_at', current_datetime)
+                    if isinstance(enrollment_date, str):
+                        try: enrollment_date = datetime.datetime.fromisoformat(enrollment_date.replace("Z", "+00:00"))
+                        except: enrollment_date = current_datetime
+
+                    months_enrolled = (current_datetime.year - enrollment_date.year) * 12 + (current_datetime.month - enrollment_date.month) + 1
+                    
+                    expected_months_to_pay = months_enrolled if is_past_collection_date else max(0, months_enrolled - 1)
+
+                    if monthly_liability > 0:
+                        total_historical_paid = sum(float(p.get('amount', 0)) for p in student_payments)
+                        months_paid_for = math.floor(total_historical_paid / monthly_liability)
+                        overdue_months = expected_months_to_pay - months_paid_for
+
+                        if overdue_months >= 1:
+                            total_pending_students += 1
+                            total_overdue_months += overdue_months
 
                 return {
                     "total_students": len(scope_students),
                     "present": present_count,
                     "absent": absent_count,
-                    "collected": collected,
-                    "pending": pending
+                    "collected": collected_this_month,
+                    "pending": pending_this_month,
+                    "pending_students_count": total_pending_students,
+                    "total_pending_months": total_overdue_months
                 }
 
-            # 3. Build Response Payloads
             if user_role == 'SUPER_ADMIN':
                 global_stats = compute_scope_data(filter_branch=None)
+                global_stats["total_instructors"] = len(all_instructors)
                 
-                branch_grid = []
-                for b_name in branch_names:
-                    b_stats = compute_scope_data(b_name)
-                    branch_grid.append({
-                        "branch_name": b_name,
-                        "present": b_stats["present"],
-                        "absent": b_stats["absent"],
-                        "collected": b_stats["collected"],
-                        "pending": b_stats["pending"]
-                    })
+                branch_grid = [{"branch_name": b, "stats": compute_scope_data(b)} for b in branch_names]
 
                 return Response({
                     "role": "SUPER_ADMIN",
-                    "email": display_name,
+                    "name": display_name,
                     "summary": global_stats,
                     "branches": branch_grid
                 }, status=status.HTTP_200_OK)
 
             else:
-                instructor_branch = getattr(user, 'branch_name', 'COIMBATORE').upper()
-                localized_stats = compute_scope_data(instructor_branch)
-
+                instructor_branch = getattr(user, 'branch_name', '').upper()
                 return Response({
                     "role": "INSTRUCTOR",
-                    "email": display_name,
-                    "branch_name": instructor_branch,
-                    "summary": localized_stats,
+                    "name": display_name,
+                    "summary": compute_scope_data(instructor_branch),
                     "branches": []
                 }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response({"error": f"Dashboard runtime fault: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

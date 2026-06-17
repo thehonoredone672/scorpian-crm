@@ -8,12 +8,7 @@ from .views_history import StudentHistoryView
 
 urlpatterns = [
     # Resolves: /api/students/
-    path('', StudentDirectoryView.as_view(), name='student_directory_root'),
-    
-    # Resolves: /api/students/export/
-    # Note: Updated frontend fetch destination below to match this clean standard!
-    path('export/', EnterpriseDataExportView.as_view(), {'target_module': 'students'}, name='export_students_data'),
-
     path('', StudentDirectoryView.as_view(), name='student_directory'),
+    path('export/', EnterpriseDataExportView.as_view(), {'target_module': 'students'}, name='export_students_data'),
     path('<str:student_id>/history/', StudentHistoryView.as_view(), name='student_history'),
-]
+    ]
