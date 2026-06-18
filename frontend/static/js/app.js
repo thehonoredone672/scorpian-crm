@@ -1,19 +1,20 @@
 // frontend/static/js/app.js
 
-const token = localStorage.getItem('scorp_token');
-const role = localStorage.getItem('scorp_role') || 'INSTRUCTOR';
+// 1. Sanitize the local storage cache
 let cachedName = localStorage.getItem('scorp_real_name');
 if (!cachedName || cachedName === 'undefined' || cachedName === 'null') {
     cachedName = localStorage.getItem('scorp_name') || 'Authorized User';
 }
 
+const token = localStorage.getItem('scorp_token');
+const role = localStorage.getItem('scorp_role') || 'INSTRUCTOR';
+
+// Kick out unauthenticated users securely
 if (!token && !window.location.pathname.includes('login')) {
     window.location.href = 'login.html'; 
 }
 
-// =====================================================================
-// ZERO-LATENCY LAYOUT ENGINE (Fixes the popping/loading delay completely)
-// =====================================================================
+// Zero-Latency Layout Injection
 if (role === 'SUPER_ADMIN') {
     document.write(`
         <style>
@@ -35,9 +36,6 @@ if (role === 'SUPER_ADMIN') {
     `);
 }
 
-// =====================================================================
-// GLOBAL SIDEBAR & MOBILE RESPONSIVENESS BUILDER
-// =====================================================================
 function renderGlobalSidebar() {
     const sidebarContainer = document.getElementById('global-sidebar-container');
     
@@ -53,21 +51,30 @@ function renderGlobalSidebar() {
                     </div>
                     <button id="closeMobileMenu" class="md:hidden text-gray-400 hover:text-white"><i class="ph ph-x text-lg"></i></button>
                 </div>
+                
                 <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
                     <a href="dashboard.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-squares-four text-base"></i> Dashboard</a>
-                    <a href="leads.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-funnel text-base"></i> Lead Management</a>
+                    
                     <a href="students.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-student text-base"></i> Students</a>
+                    
                     <a href="attendance.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-notebook text-base"></i> Attendance</a>
-                    <a href="accounting.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-wallet text-base"></i> Accounting</a>
-                    <a href="exams.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-certificate text-base"></i> Belt Exams</a>
-                    <a href="instructors.html" class="nav-link admin-only flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-chalkboard-teacher text-base"></i> Instructors</a>
+                    
+                    ${role !== 'SUPER_ADMIN' ? `<a href="accounting.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-wallet text-base"></i> Accounting</a>` : ''}
+                    
+                    ${role === 'SUPER_ADMIN' ? `<a href="exams.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-certificate text-base"></i> Belt Exams</a>` : ''}
+                    
+                    ${role === 'SUPER_ADMIN' ? `<a href="instructors.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-chalkboard-teacher text-base"></i> Instructors</a>` : ''}
                 </nav>
+
                 <div class="p-4 border-t border-white/5 space-y-3">
                     <div class="px-2.5 py-2 bg-white/5 rounded-lg border border-white/5">
                         <div id="sidebar-user-name" class="text-white font-medium text-xs truncate">${cachedName}</div>
                         <div class="text-gray-400 font-mono text-[9px] uppercase tracking-wider mt-0.5">${role === 'SUPER_ADMIN' ? 'admin' : 'instructor'}</div>
                     </div>
                     <button id="globalLogoutBtn" class="flex items-center gap-2 w-full px-2.5 py-1.5 text-gray-400 hover:text-white text-left transition-colors"><i class="ph ph-sign-out text-base"></i> Log Out</button>
+                    <div class="text-center pt-1 border-t border-white/5">
+                        <a href="https://dexys.in" target="_blank" class="text-[10px] text-gray-600 hover:text-gray-400 transition-colors tracking-wide font-medium">Developed by Dexys IT Solutions</a>
+                    </div>
                 </div>
             </aside>
         `;
@@ -88,7 +95,7 @@ function renderGlobalSidebar() {
 
         // Mobile Menu Toggle Logic
         const header = document.querySelector('header');
-        if(header) {
+        if(header && !document.getElementById('mobileMenuToggle')) {
             header.insertAdjacentHTML('afterbegin', `<button id="mobileMenuToggle" class="md:hidden mr-3 p-1 text-gray-500 hover:text-black transition-colors"><i class="ph ph-list text-2xl"></i></button>`);
             
             const sidebar = document.getElementById('main-sidebar');
@@ -113,5 +120,6 @@ function renderGlobalSidebar() {
     }
 }
 
+// Ensures the sidebar mounts instantly or waits for DOM depending on load state
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', renderGlobalSidebar); } 
 else { renderGlobalSidebar(); }

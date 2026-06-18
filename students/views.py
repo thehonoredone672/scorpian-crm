@@ -36,6 +36,24 @@ class StudentDirectoryView(APIView):
             return Response(students, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+    def delete(self, request):
+        if getattr(request.user, 'role', '') != 'SUPER_ADMIN':
+            return Response({"error": "Only Admins can delete profiles."}, status=status.HTTP_403_FORBIDDEN)
+
+        student_id = request.data.get("student_id")
+        if not student_id:
+            return Response({"error": "Student ID required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Delete the student, their attendance, and their payments
+            db.students.delete_one({"_id": ObjectId(student_id)})
+            db.attendance.delete_many({"student_id": ObjectId(student_id)})
+            db.payments.delete_many({"student_id": str(student_id)})
+            return Response({"message": "Student permanently deleted."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
         user = request.user
@@ -140,5 +158,28 @@ class StudentDirectoryView(APIView):
         try:
             db['students'].update_one({"_id": ObjectId(student_id)}, {"$set": update_fields})
             return Response({"message": "Profile updated successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class StudentPromoteView(APIView):
+    authentication_classes = [MongoJWTAuthentication]
+
+    def post(self, request):
+        if getattr(request.user, 'role', '') != 'SUPER_ADMIN':
+            return Response({"error": "Only Admins can promote students."}, status=status.HTTP_403_FORBIDDEN)
+
+        student_id = request.data.get("student_id")
+        new_belt = request.data.get("new_belt")
+
+        if not student_id or not new_belt:
+            return Response({"error": "Student ID and New Belt required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            db.students.update_one(
+                {"_id": ObjectId(student_id)},
+                {"$set": {"current_belt": str(new_belt).strip().upper()}}
+            )
+            return Response({"message": f"Promoted to {new_belt}"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

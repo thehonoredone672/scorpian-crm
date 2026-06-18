@@ -3,11 +3,12 @@ from sports.views_progression import ProgressionEngineView
 from students.views_dashboard import UnifiedDashboardMetricsView
 from students.views_enrollments import StudentEnrollmentView
 from sports.views_scheduling import BatchSchedulingView
-from students.views_attendance import LiveAttendanceCheckInView
 from finance.views import InvoiceCreatePaymentView
 from students.views_export import EnterpriseDataExportView 
 from accounts.views_instructors import InstructorManagementView
-
+from students.views import StudentPromoteView
+from django.urls import path
+from students.views_attendance import AttendanceSessionView, AttendanceEligibleStudentsView, AttendanceSessionDetailView
 from accounts.views_branches import BranchListView
 
 urlpatterns = [
@@ -22,7 +23,7 @@ urlpatterns = [
     path('api/sports/scheduling/batches/', BatchSchedulingView.as_view(), name='batch_scheduling'),
     path('api/sports/<str:sport_id>/progression/', ProgressionEngineView.as_view(), name='progression_engine'),
     path('api/students/<str:student_id>/enroll/', StudentEnrollmentView.as_view(), name='student_enrollment'),
-    path('api/sessions/<str:session_id>/checkin/', LiveAttendanceCheckInView.as_view(), name='live_attendance_checkin'),
+    
     
     # Financial Ledger Routing Hook
     path('api/finance/ledger/', InvoiceCreatePaymentView.as_view(), name='financial_ledger'),
@@ -38,4 +39,13 @@ urlpatterns = [
     path('api/instructors/', InstructorManagementView.as_view(), name='instructor_management'),
 
     path('api/dashboard/metrics/', UnifiedDashboardMetricsView.as_view(), name='dashboard_metrics_engine'),
+
+    path('api/students/promote/', StudentPromoteView.as_view(), name='student_promote'),
+
+    # New Class-Based Attendance Routes
+    path('api/attendance/sessions/', AttendanceSessionView.as_view(), name='attendance_sessions'),
+    path('api/attendance/eligible/', AttendanceEligibleStudentsView.as_view(), name='attendance_eligible'),
+    path('api/attendance/sessions/<str:session_id>/', AttendanceSessionDetailView.as_view(), name='attendance_detail'),
+
+
 ]
