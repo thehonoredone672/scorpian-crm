@@ -8,10 +8,14 @@
     <!-- ZERO-FLASH FIX -->
     <style>
         html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
-        #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; }
+        /* Only enforce the 15rem width on Desktop/Tablets */
+        @media (min-width: 768px) { 
+            #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } 
+        }
     </style>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="./static/css/global.css">
@@ -160,6 +164,31 @@
                     });
                 }
             } catch(e) { body.innerHTML = `<tr><td colspan="5" class="p-5 text-red-500 text-center">Connection failure.</td></tr>`; }
+        }
+
+        // Excel Export for Students
+        function exportStudents() {
+            if (activeStudents.length === 0) return alert("No students to export.");
+            
+            // 1. Format the data perfectly for Excel
+            const exportData = activeStudents.map(s => ({
+                "First Name": s.first_name,
+                "Last Name": s.last_name,
+                "Branch": s.branch_name,
+                "Phone": s.phone,
+                "Enrolled Programs": s.enrolled_sports ? s.enrolled_sports.join(', ') : 'Karate',
+                "Current Belt": s.current_belt,
+                "Status": s.status,
+                "Monthly Fee (₹)": s.custom_fee || 0
+            }));
+
+            // 2. Create the Excel Workbook
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Student Roster");
+
+            // 3. Trigger the Download
+            XLSX.writeFile(workbook, "Scorpion_Academy_Students.xlsx");
         }
 
         async function deleteStudentProfile() {

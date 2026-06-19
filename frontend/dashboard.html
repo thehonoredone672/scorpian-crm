@@ -8,7 +8,10 @@
     <!-- ZERO-FLASH FIX: Paints background instantly before CDN loads -->
     <style>
         html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
-        #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; }
+        /* Only enforce the 15rem width on Desktop/Tablets */
+        @media (min-width: 768px) { 
+            #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } 
+        }
     </style>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -32,24 +35,14 @@
             <!-- Dynamic Layout Engine (Controlled by app.js classes) -->
             <div id="metrics-grid" class="metrics-container">
                 
-                <div class="bg-black p-5 rounded-xl shadow-sm flex-col justify-between admin-only">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex-col justify-between admin-only">
                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Total Active Students</div>
-                    <div class="flex items-end justify-between"><div id="val_total_students" class="text-3xl font-semibold text-white tracking-tight">0</div><i class="ph ph-users text-2xl text-white/20"></i></div>
+                    <div class="flex items-end justify-between"><div id="val_total_students" class="text-3xl font-semibold text-gray-900 tracking-tight">0</div><i class="ph ph-users text-2xl text-gray-300"></i></div>
                 </div>
 
-                <div class="bg-black p-5 rounded-xl shadow-sm flex-col justify-between admin-only">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex-col justify-between admin-only">
                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Total Instructors</div>
-                    <div class="flex items-end justify-between"><div id="val_total_instructors" class="text-3xl font-semibold text-white tracking-tight">0</div><i class="ph ph-chalkboard-teacher text-2xl text-white/20"></i></div>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Today's Present</div>
-                    <div class="flex items-end justify-between"><div id="val_present" class="text-3xl font-semibold text-gray-900 tracking-tight">0</div></div>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Today's Absent</div>
-                    <div class="flex items-end justify-between"><div id="val_absent" class="text-3xl font-semibold text-gray-900 tracking-tight">0</div></div>
+                    <div class="flex items-end justify-between"><div id="val_total_instructors" class="text-3xl font-semibold text-gray-900 tracking-tight">0</div><i class="ph ph-chalkboard-teacher text-2xl text-gray-300"></i></div>
                 </div>
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
@@ -95,8 +88,6 @@
                 }
 
                 const summary = data.summary;
-                document.getElementById('val_present').innerText = summary.present;
-                document.getElementById('val_absent').innerText = summary.absent;
                 document.getElementById('val_collected').innerText = summary.collected.toLocaleString('en-IN');
                 document.getElementById('val_pending').innerText = summary.pending.toLocaleString('en-IN');
 

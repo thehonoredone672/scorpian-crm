@@ -7,7 +7,6 @@ from bson import ObjectId
 import datetime
 
 # --- AGGRESSIVE BRANCH RESOLUTION HELPER ---
-# This guarantees the system finds your branch even if the token is incomplete.
 def get_true_branch(user):
     branch = getattr(user, 'branch_name', None)
     if not branch and hasattr(user, 'dict'):
@@ -87,13 +86,14 @@ class AttendanceSessionView(APIView):
         if att_docs: db['attendance'].insert_many(att_docs)
         return Response({"message": "Class attendance successfully recorded!"}, status=status.HTTP_201_CREATED)
 
+
 class AttendanceEligibleStudentsView(APIView):
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
         sport = request.query_params.get('sport')
         
-        # Deploy the aggressive lookup
+        # Deploy aggressive branch lookup
         branch = get_true_branch(request.user)
         if not branch:
             return Response([], status=status.HTTP_200_OK)
@@ -102,8 +102,13 @@ class AttendanceEligibleStudentsView(APIView):
         if sport: query["enrolled_sports"] = sport
 
         students = list(db['students'].find(query, {"first_name": 1, "last_name": 1, "current_belt": 1}))
+        
+        # Alphabetical Sort
+        students.sort(key=lambda x: str(x.get('first_name', '')).lower())
+        
         result = [{"id": str(s['_id']), "name": f"{s.get('first_name', '')} {s.get('last_name', '')}", "belt": s.get('current_belt', 'WHITE')} for s in students]
         return Response(result, status=status.HTTP_200_OK)
+
 
 class AttendanceSessionDetailView(APIView):
     authentication_classes = [MongoJWTAuthentication]

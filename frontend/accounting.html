@@ -9,6 +9,13 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="./static/css/global.css">
     <script src="./static/js/app.js"></script>
+    <style>
+        html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
+        /* Only enforce the 15rem width on Desktop/Tablets */
+        @media (min-width: 768px) { 
+            #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } 
+        }
+    </style>
 </head>
 <body class="flex h-screen overflow-hidden text-[13px] antialiased">
     <div id="global-sidebar-container" class="h-full shrink-0"></div>

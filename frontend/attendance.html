@@ -7,10 +7,14 @@
     
     <style>
         html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
-        #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; }
+        /* Only enforce the 15rem width on Desktop/Tablets */
+        @media (min-width: 768px) { 
+            #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } 
+        }
     </style>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="./static/css/global.css">
@@ -21,9 +25,13 @@
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden w-full bg-[#FAFAFA] relative">
         <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0">
-            <h2 class="font-semibold text-xs uppercase tracking-widest text-gray-400">Class Attendance Log</h2>
+            <h2 class="font-semibold text-xs uppercase tracking-widest text-gray-400">Class Attendance</h2>
+            <div class="relative w-full max-w-xs">
+                <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="attSearch" onkeyup="searchAttendance()" placeholder="Search history..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs">
+            </div>
             <div class="flex items-center gap-2">
-                <button onclick="exportAttendanceCSV()" class="border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 transition-colors"><i class="ph ph-download"></i> Export <span id="exportMonthName" class="font-bold">Month</span></button>
+                <button onclick="exportAttendanceExcel()" class="border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 transition-colors"><i class="ph ph-download"></i> Export <span id="exportMonthName" class="font-bold">Month</span></button>
                 <button id="addClassBtn" onclick="openSetupModal()" class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"><i class="ph ph-plus font-bold"></i> Add Class Attendance</button>
             </div>
         </header>
@@ -133,6 +141,33 @@
             return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
         }
 
+        // Excel Export for Monthly Attendance
+        function exportAttendanceExcel() {
+            if(historyCache.length === 0) return alert("No data to export.");
+            
+            const currentMonthStr = new Date().toISOString().slice(0, 7); 
+            const monthData = historyCache.filter(s => s.date.startsWith(currentMonthStr));
+            
+            if(monthData.length === 0) return alert("No classes recorded for this month yet.");
+
+            // 1. Format the data for Excel
+            const exportData = monthData.map(s => ({
+                "Date": s.date,
+                "Time": s.time,
+                "Class Type": s.sport,
+                "Branch": s.branch_name,
+                "Instructor": s.instructor_name,
+                "Present Count": s.present_count,
+                "Absent Count": s.absent_count
+            }));
+
+            // 2. Build and Download Excel File
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, `${currentMonthName} Attendance`);
+            XLSX.writeFile(workbook, `Class_Attendance_${currentMonthName}.xlsx`);
+        }
+
         // 3. Load Session History
         async function loadHistory() {
             const body = document.getElementById('sessionHistoryBody');
@@ -155,6 +190,13 @@
                         </tr>`;
                 });
             } catch(e) { body.innerHTML = `<tr><td colspan="5" class="p-5 text-red-500 text-center">Connection failure.</td></tr>`; }
+        }
+
+        function searchAttendance() { 
+            const input = document.getElementById('attSearch').value.toLowerCase(); 
+            document.querySelectorAll('#sessionHistoryBody tr').forEach(row => 
+                row.style.display = row.textContent.toLowerCase().includes(input) ? '' : 'none'
+            ); 
         }
 
         // 4. Fetch Roster & Open Roll Call

@@ -10,50 +10,29 @@ class StudentDirectoryView(APIView):
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
-        user = request.user
+        role = getattr(request.user, 'role', 'INSTRUCTOR')
         query = {}
-
-        if user.role != 'SUPER_ADMIN':
-            # Safe DB lookup for GET requests
-            user_id = getattr(user, 'id', None) or (user.dict.get('_id') if hasattr(user, 'dict') else None)    
-            user_record = db.users.find_one({"_id": ObjectId(str(user_id))}) if user_id else None
-            instructor_branch = user_record.get('branch_name', 'COIMBATORE').upper() if user_record else 'COIMBATORE'
-            query["branch_name"] = instructor_branch
-
-        try:
-            students = []
-            for s in db['students'].find(query):
-                students.append({
-                    "id": str(s["_id"]),
-                    "first_name": s.get("first_name", ""),
-                    "last_name": s.get("last_name", ""),
-                    "phone": s.get("phone", ""),
-                    "enrolled_sports": s.get("enrolled_sports", [s.get("style", "Karate")]),
-                    "current_belt": s.get("current_belt", "WHITE"),
-                    "branch_name": str(s.get("branch_name", "UNKNOWN")).upper(),
-                    "status": s.get("status", "ACTIVE")
-                })
-            return Response(students, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        if role != 'SUPER_ADMIN':
+            # Aggressive lookup fallback for Instructors
+            branch = getattr(request.user, 'branch_name', None) or (request.user.dict.get('branch_name') if hasattr(request.user, 'dict') else None)
+            if not branch:
+                user_id = getattr(request.user, 'id', None) or (request.user.dict.get('_id') if hasattr(request.user, 'dict') else None)
+                if user_id:
+                    user_record = db.users.find_one({"_id": ObjectId(str(user_id))})
+                    if user_record: branch = user_record.get('branch_name')
+            if branch:
+                query['branch_name'] = branch.upper()
 
-    def delete(self, request):
-        if getattr(request.user, 'role', '') != 'SUPER_ADMIN':
-            return Response({"error": "Only Admins can delete profiles."}, status=status.HTTP_403_FORBIDDEN)
-
-        student_id = request.data.get("student_id")
-        if not student_id:
-            return Response({"error": "Student ID required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            # Delete the student, their attendance, and their payments
-            db.students.delete_one({"_id": ObjectId(student_id)})
-            db.attendance.delete_many({"student_id": ObjectId(student_id)})
-            db.payments.delete_many({"student_id": str(student_id)})
-            return Response({"message": "Student permanently deleted."}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        students = list(db['students'].find(query))
+        
+        # Alphabetical sort by first name
+        students.sort(key=lambda x: str(x.get('first_name', '')).lower())
+        
+        for s in students:
+            s['id'] = str(s.pop('_id'))
+            if 'created_at' in s: s['created_at'] = str(s['created_at'])
+        return Response(students, status=status.HTTP_200_OK)
 
     def post(self, request):
         user = request.user
@@ -72,12 +51,11 @@ class StudentDirectoryView(APIView):
         if not first_name or not phone:
             return Response({"error": "Required tracking fields missing."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # === AGGRESSIVE BRANCH RESOLUTION FIX ===
+        # Aggressive Branch Resolution
         instructor_branch = getattr(user, 'branch_name', None)
         if not instructor_branch and hasattr(user, 'dict'):
             instructor_branch = user.dict.get('branch_name')
 
-        # Fallback 1: DB Lookup by ID
         if not instructor_branch:
             user_id = getattr(user, 'id', None) or (user.dict.get('_id') if hasattr(user, 'dict') else None)
             if user_id:
@@ -86,7 +64,6 @@ class StudentDirectoryView(APIView):
                     if user_record: instructor_branch = user_record.get('branch_name')
                 except: pass
 
-        # Fallback 2: DB Lookup by Email
         if not instructor_branch:
             user_email = getattr(user, 'email', None) or (user.dict.get('email') if hasattr(user, 'dict') else None)
             if user_email:
@@ -97,7 +74,6 @@ class StudentDirectoryView(APIView):
             return Response({"error": "System Alert: Instructor profile is corrupted or missing a branch assignment. Please check the Instructor Roster."}, status=status.HTTP_400_BAD_REQUEST)
 
         instructor_branch = instructor_branch.strip().upper()
-        # ========================================
 
         duplicate_check = db['students'].find_one({"first_name": first_name, "last_name": last_name, "phone": phone})
         if duplicate_check:
@@ -123,44 +99,50 @@ class StudentDirectoryView(APIView):
         return Response({"message": "Student admitted successfully."}, status=status.HTTP_201_CREATED)
 
     def put(self, request):
-        user = request.user
-        data = request.data
-        student_id = data.get("student_id")
-
+        student_id = request.data.get("student_id")
         if not student_id:
             return Response({"error": "Student ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        update_fields = {}
+        if "phone" in request.data: update_fields["phone"] = request.data.get("phone").strip()
+        if "status" in request.data: update_fields["status"] = request.data.get("status").strip()
+        
+        try: 
+            if "custom_fee" in request.data:
+                update_fields["custom_fee"] = float(request.data.get("custom_fee", 0.00))
+        except ValueError: pass
 
-        sports_input = data.get("style", [])
-        if isinstance(sports_input, str):
-            sports_array = [s.strip() for s in sports_input.split(',')] if sports_input else []
-        else:
-            sports_array = sports_input
-
-        update_fields = {
-            "phone": data.get("phone"),
-            "status": data.get("status", "ACTIVE"),
-            "updated_at": datetime.datetime.utcnow()
-        }
-
-        try:
-            custom_fee = float(data.get("custom_fee", 0.00))
-            update_fields["custom_fee"] = custom_fee
-        except ValueError:
-            pass
-
-        if sports_array:
+        if "style" in request.data:
+            sports_input = request.data.get("style")
+            sports_array = [s.strip() for s in sports_input.split(',')] if isinstance(sports_input, str) else sports_input
             update_fields["enrolled_sports"] = sports_array
             update_fields["style"] = ", ".join(sports_array)
 
-        if user.role == 'SUPER_ADMIN' and data.get("branch_name"):
-            update_fields["branch_name"] = data.get("branch_name").strip().upper()
+        if getattr(request.user, 'role', '') == 'SUPER_ADMIN' and "branch_name" in request.data:
+            update_fields["branch_name"] = request.data.get("branch_name").strip().upper()
 
         try:
             db['students'].update_one({"_id": ObjectId(student_id)}, {"$set": update_fields})
-            return Response({"message": "Profile updated successfully."}, status=status.HTTP_200_OK)
+            return Response({"message": "Student profile updated."}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
+    def delete(self, request):
+        if getattr(request.user, 'role', '') != 'SUPER_ADMIN':
+            return Response({"error": "Only Admins can delete profiles."}, status=status.HTTP_403_FORBIDDEN)
+
+        student_id = request.data.get("student_id")
+        if not student_id:
+            return Response({"error": "Student ID required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            db.students.delete_one({"_id": ObjectId(student_id)})
+            db.attendance.delete_many({"student_id": ObjectId(student_id)})
+            db.payments.delete_many({"student_id": str(student_id)})
+            return Response({"message": "Student permanently deleted."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class StudentPromoteView(APIView):
     authentication_classes = [MongoJWTAuthentication]

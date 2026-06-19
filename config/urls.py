@@ -10,6 +10,7 @@ from students.views import StudentPromoteView
 from django.urls import path
 from students.views_attendance import AttendanceSessionView, AttendanceEligibleStudentsView, AttendanceSessionDetailView
 from accounts.views_branches import BranchListView
+from students.views_exams import ExamSessionView, ExamEligibleStudentsView, ExamSessionDetailView
 
 urlpatterns = [
     path('api/auth/', include('accounts.urls')),
@@ -47,5 +48,7 @@ urlpatterns = [
     path('api/attendance/eligible/', AttendanceEligibleStudentsView.as_view(), name='attendance_eligible'),
     path('api/attendance/sessions/<str:session_id>/', AttendanceSessionDetailView.as_view(), name='attendance_detail'),
 
-
+    path('api/exams/sessions/', ExamSessionView.as_view(), name='exam_sessions'),
+    path('api/exams/eligible/', ExamEligibleStudentsView.as_view(), name='exam_eligible'),
+    path('api/exams/sessions/<str:session_id>/', ExamSessionDetailView.as_view(), name='exam_detail'),
 ]

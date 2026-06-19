@@ -4,84 +4,191 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scorpion Academy | Belt Exams</title>
-
-    <!-- ZERO-FLASH FIX -->
-    <style>
-        html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
-        #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; }
-    </style>
-
+    <style>html, body { background-color: #FAFAFA !important; } #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; }</style>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="./static/css/global.css">
     <script src="./static/js/app.js"></script>
+    <style>
+        html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
+        /* Only enforce the 15rem width on Desktop/Tablets */
+        @media (min-width: 768px) { 
+            #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } 
+        }
+    </style>
 </head>
 <body class="flex h-screen overflow-hidden text-[13px] antialiased">
     <div id="global-sidebar-container" class="flex flex-col h-full shrink-0"></div>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full bg-[#FAFAFA]">
-        <header class="h-14 border-b border-gray-200 flex items-center px-4 md:px-8 bg-white shrink-0">
-            <h2 class="font-semibold text-xs uppercase tracking-widest text-gray-400">Promotion Control Board</h2>
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full bg-[#FAFAFA] relative">
+        <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0">
+            <div class="relative w-full max-w-xs">
+                <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="examSearch" onkeyup="searchExams()" placeholder="Search exam history..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs">
+            </div>
+            <button onclick="openSetupModal()" class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"><i class="ph ph-plus font-bold"></i> Add Belt Exam</button>
         </header>
+
         <div class="flex-1 overflow-y-auto p-4 md:p-8">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                         <tr class="bg-gray-50/50 text-[11px] font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                            <th class="px-5 py-3">Student Name</th>
-                            <th class="px-5 py-3">Current Belt Level</th>
+                            <th class="px-5 py-3">Date</th>
+                            <th class="px-5 py-3">Testing Branch</th>
+                            <th class="px-5 py-3">Promotions Awarded</th>
                             <th class="px-5 py-3 text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="examBody" class="divide-y divide-gray-100 text-xs"></tbody>
+                    <tbody id="examHistoryBody" class="divide-y divide-gray-100 text-xs"></tbody>
                 </table>
             </div>
         </div>
     </main>
 
+    <!-- Modal 1: Setup Exam -->
+    <div id="setupModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-gray-200 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Configure Belt Exam</h3>
+                <button onclick="closeModals()" class="text-gray-400 hover:text-black"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="setupForm" class="p-6 space-y-4">
+                <div class="bg-blue-50 text-blue-600 border border-blue-200 p-2 rounded text-[10px] flex gap-1.5"><i class="ph-fill ph-info"></i> Belt Exams are strictly limited to Karate.</div>
+                <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Testing Date *</label><input type="date" id="e_date" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                <button type="submit" class="w-full bg-black text-white font-medium py-2 rounded-md text-xs hover:bg-gray-800 mt-2">Fetch Karate Roster</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Promote Roster -->
+    <div id="promoteModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
+                <div><h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Award Promotions</h3><p id="promo_subtitle" class="text-[10px] font-mono text-gray-500 mt-0.5">Date</p></div>
+                <button onclick="closeModals()" class="text-gray-400 hover:text-black"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-2">
+                <table class="w-full text-left">
+                    <tbody id="rosterBody" class="divide-y divide-gray-100 text-xs"></tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 shrink-0">
+                <button onclick="submitExam()" class="w-full bg-black text-white font-medium py-2.5 rounded-md text-xs hover:bg-gray-800">Finalize & Promote Students</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Details -->
+    <div id="detailsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
+                <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Promotion List</h3>
+                <button onclick="closeModals()" class="text-gray-400 hover:text-black"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-1.5" id="detailsBody"></div>
+        </div>
+    </div>
+
     <script>
         const authHeaders = { 'Authorization': `Bearer ${localStorage.getItem('scorp_token')}`, 'Content-Type': 'application/json' };
-        
-        // Exact 9-Tier Karate Ranking Ladder
         const belts = ["WHITE", "YELLOW", "ORANGE", "BLUE", "GREEN", "PURPLE", "BROWN 1", "BROWN 2", "BLACK 1"];
+        
+        let examState = { date: '', roster: [] };
 
-        async function loadExams() {
-            const body = document.getElementById('examBody');
+        function openSetupModal() { document.getElementById('e_date').valueAsDate = new Date(); document.getElementById('setupModal').classList.remove('hidden'); }
+        function closeModals() { document.getElementById('setupModal').classList.add('hidden'); document.getElementById('promoteModal').classList.add('hidden'); document.getElementById('detailsModal').classList.add('hidden'); }
+
+        async function loadHistory() {
+            const body = document.getElementById('examHistoryBody');
+            body.innerHTML = `<tr><td colspan="4" class="p-5 text-gray-400 text-center animate-pulse">Syncing...</td></tr>`;
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders });
-                const students = await res.json();
+                const res = await fetch('http://127.0.0.1:8000/api/exams/sessions/', { headers: authHeaders });
+                const history = await res.json();
                 body.innerHTML = '';
-                if(students.length === 0) { body.innerHTML = '<tr><td colspan="3" class="p-5 text-center text-gray-400">No students eligible.</td></tr>'; return; }
+                if(history.length === 0) { body.innerHTML = `<tr><td colspan="4" class="p-5 text-center text-gray-400">No exams recorded yet.</td></tr>`; return; }
                 
-                students.forEach(s => {
-                    const currentIdx = belts.indexOf(s.current_belt.toUpperCase());
-                    const nextBelt = (currentIdx >= 0 && currentIdx < belts.length - 1) ? belts[currentIdx + 1] : "MAX RANK";
-                    
-                    const btn = nextBelt !== "MAX RANK" 
-                        ? `<button onclick="promote('${s.id}', '${nextBelt}')" class="bg-black text-white px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors">Promote to ${nextBelt}</button>`
-                        : `<span class="px-2 py-1 bg-gray-100 text-gray-400 rounded text-[10px] font-bold uppercase tracking-wider">Master Rank</span>`;
-
+                history.forEach(s => {
                     body.innerHTML += `
                         <tr class="hover:bg-gray-50/50 transition-colors">
-                            <td class="px-5 py-4 font-medium text-gray-900">${s.first_name} ${s.last_name}</td>
-                            <td class="px-5 py-4"><span class="font-mono text-[10px] font-bold px-2 py-0.5 border rounded uppercase">${s.current_belt}</span></td>
-                            <td class="px-5 py-4 text-right">${btn}</td>
+                            <td class="px-5 py-4 font-mono text-gray-900 font-medium">${s.date}</td>
+                            <td class="px-5 py-4 text-gray-600 font-bold text-[10px] uppercase tracking-wider">${s.branch_name}</td>
+                            <td class="px-5 py-4"><span class="bg-black text-white px-2 py-0.5 rounded text-[10px] font-bold">${s.promoted_count} Promoted</span></td>
+                            <td class="px-5 py-4 text-right"><button onclick="viewExamDetails('${s.id}')" class="text-[10px] font-bold uppercase tracking-wider border px-3 py-1.5 rounded hover:bg-gray-50">View List</button></td>
                         </tr>`;
                 });
-            } catch(e) {}
+            } catch(e) { body.innerHTML = `<tr><td colspan="4" class="p-5 text-red-500 text-center">Connection failure.</td></tr>`; }
         }
 
-        async function promote(studentId, newBelt) {
+        document.getElementById('setupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            examState.date = document.getElementById('e_date').value;
+            const btn = e.target.querySelector('button'); btn.innerText = "Loading...";
+
             try {
-                await fetch('http://127.0.0.1:8000/api/students/promote/', {
-                    method: 'POST', headers: authHeaders,
-                    body: JSON.stringify({ student_id: studentId, new_belt: newBelt })
+                const res = await fetch(`http://127.0.0.1:8000/api/exams/eligible/`, { headers: authHeaders });
+                const roster = await res.json();
+                
+                if(roster.length === 0) { alert(`No Karate students found.`); btn.innerText = "Fetch Karate Roster"; return; }
+
+                examState.roster = roster.map(r => ({ student_id: r.id, student_name: r.name, old_belt: r.belt, new_belt: '' }));
+                document.getElementById('promo_subtitle').innerText = `Testing Date: ${examState.date}`;
+                
+                const tbody = document.getElementById('rosterBody'); tbody.innerHTML = '';
+                roster.forEach((r, idx) => {
+                    const beltOptions = belts.map(b => `<option value="${b}">${b}</option>`).join('');
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 font-medium text-gray-900">${r.name} <br><span class="text-[10px] font-mono text-gray-400 uppercase">${r.branch}</span></td>
+                            <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 bg-gray-100 border text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">${r.belt}</span></td>
+                            <td class="px-4 py-3 text-right">
+                                <select onchange="updatePromotion(${idx}, this.value)" class="bg-white border border-gray-200 px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer outline-none w-32">
+                                    <option value="">No Promotion</option>
+                                    ${beltOptions}
+                                </select>
+                            </td>
+                        </tr>`;
                 });
-                loadExams();
-            } catch(e) { alert("Failed to promote student."); }
+
+                document.getElementById('setupModal').classList.add('hidden');
+                document.getElementById('promoteModal').classList.remove('hidden');
+                btn.innerText = "Fetch Karate Roster";
+            } catch(err) { alert("Failed to fetch students."); btn.innerText = "Fetch Karate Roster"; }
+        });
+
+        function updatePromotion(idx, belt) { examState.roster[idx].new_belt = belt; }
+
+        async function submitExam() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/exams/sessions/', {
+                    method: 'POST', headers: authHeaders,
+                    body: JSON.stringify({ date: examState.date, branch_name: "GLOBAL EXAM", promotions: examState.roster })
+                });
+                if(res.ok) { closeModals(); loadHistory(); } else { alert((await res.json()).error); }
+            } catch(e) { alert("Failed to log exam."); }
         }
-        loadExams();
+
+        async function viewExamDetails(sessionId) {
+            document.getElementById('detailsModal').classList.remove('hidden');
+            const box = document.getElementById('detailsBody'); box.innerHTML = '<div class="text-center text-gray-400 text-xs py-4 animate-pulse">Loading list...</div>';
+            try {
+                const res = await fetch(`http://127.0.0.1:8000/api/exams/sessions/${sessionId}/`, { headers: authHeaders });
+                const records = await res.json();
+                box.innerHTML = records.map(r => `
+                    <div class="flex flex-col bg-gray-50 px-3 py-2 rounded border border-gray-100">
+                        <span class="font-medium text-gray-800 text-xs">${r.student_name}</span>
+                        <div class="flex items-center gap-2 mt-1 text-[10px] font-bold tracking-wider">
+                            <span class="text-gray-400 uppercase">${r.old_belt}</span>
+                            <i class="ph ph-arrow-right text-gray-300"></i>
+                            <span class="text-green-600 uppercase">${r.new_belt}</span>
+                        </div>
+                    </div>`).join('');
+            } catch(e) { box.innerHTML = '<div class="text-red-500 text-xs">Failed to load.</div>'; }
+        }
+
+        function searchExams() { const input = document.getElementById('examSearch').value.toLowerCase(); document.querySelectorAll('#examHistoryBody tr').forEach(row => row.style.display = row.textContent.toLowerCase().includes(input) ? '' : 'none'); }
+        loadHistory();
     </script>
 </body>
 </html>

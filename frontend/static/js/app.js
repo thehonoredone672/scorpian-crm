@@ -15,26 +15,23 @@ if (!token && !window.location.pathname.includes('login')) {
 }
 
 // Zero-Latency Layout Injection
-if (role === 'SUPER_ADMIN') {
-    document.write(`
-        <style>
-            .admin-only { display: flex !important; }
-            .admin-block { display: block !important; }
-            /* Admin: 3 Columns Desktop, 2 Columns Tablet, 1 Column Mobile */
-            .metrics-container { display: grid !important; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 1rem; }
-            @media (min-width: 640px) { .metrics-container { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-            @media (min-width: 1024px) { .metrics-container { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        </style>
-    `);
-} else {
-    document.write(`
-        <style>
-            .admin-only, .admin-block { display: none !important; }
-            /* Instructor: Straight Vertical Line */
-            .metrics-container { display: flex !important; flex-direction: column !important; gap: 1rem; }
-        </style>
-    `);
-}
+// Zero-Latency Layout Injection (100% Mobile Responsive)
+document.write(`
+    <style>
+        .admin-only { display: ${role === 'SUPER_ADMIN' ? 'flex' : 'none'} !important; }
+        .admin-block { display: ${role === 'SUPER_ADMIN' ? 'block' : 'none'} !important; }
+        
+        /* Global Responsive Grid: 1 column on mobile, 2 columns on tablets/desktop */
+        .metrics-container { 
+            display: grid !important; 
+            grid-template-columns: repeat(1, minmax(0, 1fr)); 
+            gap: 1rem; 
+        }
+        @media (min-width: 640px) { 
+            .metrics-container { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
+        }
+    </style>
+`);
 
 function renderGlobalSidebar() {
     const sidebarContainer = document.getElementById('global-sidebar-container');
@@ -93,14 +90,27 @@ function renderGlobalSidebar() {
             }
         });
 
-        // Mobile Menu Toggle Logic
+        // Mobile Menu Toggle Logic (100% Responsive Fix)
         const header = document.querySelector('header');
         if(header && !document.getElementById('mobileMenuToggle')) {
-            header.insertAdjacentHTML('afterbegin', `<button id="mobileMenuToggle" class="md:hidden mr-3 p-1 text-gray-500 hover:text-black transition-colors"><i class="ph ph-list text-2xl"></i></button>`);
+            // 1. Create the Hamburger Button
+            const menuBtn = document.createElement('button');
+            menuBtn.id = 'mobileMenuToggle';
+            menuBtn.className = 'md:hidden mr-3 p-1 text-gray-500 hover:text-black transition-colors shrink-0';
+            menuBtn.innerHTML = '<i class="ph ph-list text-2xl"></i>';
             
+            // 2. Safely inject it without breaking Flexbox
+            const firstChild = header.firstElementChild;
+            const leftGroup = document.createElement('div');
+            leftGroup.className = 'flex items-center shrink-0';
+            
+            header.insertBefore(leftGroup, firstChild);
+            leftGroup.appendChild(menuBtn);
+            leftGroup.appendChild(firstChild); // Moves the title inside the group safely
+
+            // 3. Attach Slide-out Logic
             const sidebar = document.getElementById('main-sidebar');
             const overlay = document.getElementById('mobile-overlay');
-            const openBtn = document.getElementById('mobileMenuToggle');
             const closeBtn = document.getElementById('closeMobileMenu');
 
             function toggleMenu() {
@@ -108,9 +118,9 @@ function renderGlobalSidebar() {
                 overlay.classList.toggle('hidden');
             }
 
-            openBtn.addEventListener('click', toggleMenu);
-            closeBtn.addEventListener('click', toggleMenu);
-            overlay.addEventListener('click', toggleMenu);
+            menuBtn.addEventListener('click', toggleMenu);
+            if(closeBtn) closeBtn.addEventListener('click', toggleMenu);
+            if(overlay) overlay.addEventListener('click', toggleMenu);
         }
 
         document.getElementById('globalLogoutBtn').addEventListener('click', () => {
