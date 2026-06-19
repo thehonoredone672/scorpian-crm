@@ -66,8 +66,8 @@ class ExamEligibleStudentsView(APIView):
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
-        # Strictly limited to Karate
-        query = {"status": "ACTIVE", "enrolled_sports": "Karate"}
+        sport = request.query_params.get('sport')
+        query = {"status": "ACTIVE", "enrolled_sports": sport}
         
         students = list(db['students'].find(query, {"first_name": 1, "last_name": 1, "current_belt": 1, "branch_name": 1}))
         students.sort(key=lambda x: str(x.get('first_name', '')).lower())

@@ -4,276 +4,406 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scorpion Academy | Students</title>
-
-    <!-- ZERO-FLASH FIX -->
     <style>
         html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
-        /* Only enforce the 15rem width on Desktop/Tablets */
-        @media (min-width: 768px) { 
-            #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } 
-        }
+        @media (min-width: 768px) { #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } }
     </style>
-
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="./static/css/global.css">
     <script src="./static/js/app.js"></script>
 </head>
-<body class="flex h-screen overflow-hidden text-[13px] antialiased relative">
+<body class="flex h-screen overflow-hidden text-[13px] antialiased">
     <div id="global-sidebar-container" class="flex flex-col h-full shrink-0"></div>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full bg-[#FAFAFA]">
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full bg-[#FAFAFA] relative">
         <header class="h-14 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 bg-white shrink-0 gap-4">
-            <div class="relative w-full max-w-xs hidden sm:block">
-                <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input type="text" id="studentSearch" onkeyup="searchStudents()" placeholder="Search student roster..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs">
+            <div class="flex items-center gap-3 w-full max-w-md">
+                <div class="relative flex-1">
+                    <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="searchInput" onkeyup="renderStudents()" placeholder="Search directory..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs">
+                </div>
+                <select id="mainSort" onchange="renderStudents()" class="bg-gray-50 border border-gray-200 text-gray-700 px-2 py-1.5 rounded-md text-xs font-medium outline-none cursor-pointer"><option value="alphabet">Sort: A-Z</option><option value="age">Sort: Age</option><option value="gender">Sort: Gender</option></select>
             </div>
-            <div class="flex items-center gap-2 ml-auto">
+            <div class="flex items-center gap-2">
                 <button onclick="exportStudents()" class="border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 transition-colors"><i class="ph ph-download"></i> Export</button>
-                <button id="admitStudentBtn" onclick="openStudentModal()" class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"><i class="ph ph-plus font-bold"></i> Admit Student</button>
+                <button id="admitStudentBtn" onclick="openAdmitModal()" class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"><i class="ph ph-user-plus font-bold"></i> Admit Student</button>
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 relative">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-[700px]">
+                <table class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                         <tr class="bg-gray-50/50 text-[11px] font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                             <th class="px-5 py-3">Student Name</th>
-                            <th class="px-5 py-3">Branch Location</th>
-                            <th class="px-5 py-3">Enrolled Sports</th>
                             <th class="px-5 py-3">Contact</th>
-                            <th class="px-5 py-3 text-right">Status</th>
+                            <th class="px-5 py-3">Programs & Rank</th>
+                            <th class="px-5 py-3">Demographics</th>
+                            <th class="px-5 py-3">Branch</th>
+                            <th class="px-5 py-3">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="studentsTableBody" class="divide-y divide-gray-100 text-xs"></tbody>
+                    <tbody id="studentTableBody" class="divide-y divide-gray-100 text-xs"></tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <!-- Admission Modal -->
-    <div id="modalBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-40" onclick="closeStudentModal()"></div>
-    <div id="studentModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-gray-200 flex flex-col overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+    <div id="studentModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
                 <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Admit New Student</h3>
-                <button onclick="closeStudentModal()" class="text-gray-400 hover:text-black"><i class="ph ph-x text-base"></i></button>
+                <button onclick="closeModals()" class="text-gray-400 hover:text-black"><i class="ph ph-x text-base"></i></button>
             </div>
-            <form id="studentForm" class="p-6 space-y-4">
+            <form id="addStudentForm" class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">First Name *</label><input type="text" id="s_first" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
-                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Last Name *</label><input type="text" id="s_last" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Last Name</label><input type="text" id="s_last" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
                 </div>
-                <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Phone Number *</label><input type="text" id="s_phone" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
-                <div>
-                    <label class="block text-[10px] font-semibold text-gray-500 mb-1">Custom Monthly Fee (₹) *</label>
-                    <input type="number" id="s_fee" required placeholder="e.g. 1500" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs font-mono">
+                <div class="grid grid-cols-3 gap-4">
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Age</label><input type="number" id="s_age" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Gender</label><select id="s_gender" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"><option value="">Select</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Blood Type</label><input type="text" id="s_blood" placeholder="e.g. O+" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs uppercase"></div>
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Phone Number *</label><input type="tel" id="s_phone" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Monthly Fee (₹) *</label><input type="number" id="s_fee" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs"></div>
+                </div>
+                <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Address</label><textarea id="s_address" rows="2" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs resize-none"></textarea></div>
                 <div>
                     <label class="block text-[10px] font-semibold text-gray-500 mb-2">Enrolled Programs</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center gap-2 text-[11px] font-medium border border-gray-200 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-50">
-                            <input type="checkbox" value="Karate" class="modal-sport-cb accent-black w-3.5 h-3.5" checked> Karate
-                        </label>
-                        <label class="flex items-center gap-2 text-[11px] font-medium border border-gray-200 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-50">
-                            <input type="checkbox" value="Silambam" class="modal-sport-cb accent-black w-3.5 h-3.5"> Silambam
-                        </label>
-                    </div>
+                    <div id="s_sports_grid" class="flex flex-wrap gap-4 p-3 bg-gray-50 rounded-md border border-gray-200"></div>
                 </div>
-                <div class="bg-blue-50 text-blue-600 border border-blue-200 p-2 rounded text-[10px] flex gap-1.5"><i class="ph-fill ph-info"></i> Auto-locked to your branch.</div>
-                <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-medium py-2 rounded-md text-xs transition-colors mt-2">Admit Profile</button>
+                <button type="submit" class="w-full bg-black text-white font-medium py-2.5 rounded-md text-xs hover:bg-gray-800 transition-colors">Admit to Academy</button>
             </form>
         </div>
     </div>
 
-    <!-- CRM Drawer -->
-    <div id="drawerBackdrop" class="fixed inset-0 bg-gray-900/20 backdrop-blur-[1px] hidden z-40" onclick="closeDrawer()"></div>
-    <div id="profileDrawer" class="fixed inset-y-0 right-0 w-full max-w-[420px] bg-white border-l border-gray-200 shadow-2xl z-50 translate-x-full transition-transform duration-200 ease-in-out flex flex-col">
-        <div class="h-14 px-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
-            <h3 class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Student Profile CRM</h3>
-            <button onclick="closeDrawer()" class="text-gray-400 hover:text-black p-1"><i class="ph ph-x text-base"></i></button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-6">
-            <div class="mb-5"><h2 id="dName" class="text-xl font-bold text-gray-900 tracking-tight">—</h2><span id="dBelt" class="px-2 py-0.5 bg-gray-100 border text-[10px] font-mono font-bold tracking-wide rounded uppercase mt-1 inline-block"></span></div>
-            <input type="hidden" id="dId">
-            <div class="space-y-4">
-                <div><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Contact Number</label><input type="text" id="dPhone" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs font-mono"></div>
-                <div><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Monthly Fee Assessment (₹)</label><input type="number" id="dFee" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs font-mono"></div>
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Enrolled Programs</label>
-                    <div class="flex flex-wrap gap-2">
-                        <label class="flex items-center gap-1.5 text-[10px] font-medium border border-gray-200 px-2 py-1 rounded cursor-pointer hover:bg-gray-50">
-                            <input type="checkbox" value="Karate" class="drawer-sport-cb accent-black"> Karate
-                        </label>
-                        <label class="flex items-center gap-1.5 text-[10px] font-medium border border-gray-200 px-2 py-1 rounded cursor-pointer hover:bg-gray-50">
-                            <input type="checkbox" value="Silambam" class="drawer-sport-cb accent-black"> Silambam
-                        </label>
+    <div id="profileModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                <h3 class="text-sm font-bold text-gray-900" id="headerProfileName">Student Profile</h3>
+                <button onclick="closeModals()" class="text-gray-400 hover:text-black"><i class="ph ph-x text-lg"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-0 flex flex-col md:flex-row">
+                <div class="flex-1 p-6 border-b md:border-b-0 md:border-r border-gray-100 space-y-5">
+                    <h4 class="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Identity & Demographics</h4>
+                    <input type="hidden" id="pId">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">First Name</label><input type="text" id="pFirst" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs"></div>
+                        <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Last Name</label><input type="text" id="pLast" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs"></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Age</label><input type="number" id="pAge" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs"></div>
+                        <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Gender</label><select id="pGender" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs"><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                        <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Blood Type</label><input type="text" id="pBlood" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs uppercase"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Phone Number</label><input type="tel" id="pPhone" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs"></div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-gray-500 mb-1">Account Status</label>
+                            <select id="pStatus" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs font-semibold">
+                                <option value="ACTIVE" class="text-green-600">Active</option>
+                                <option value="PENDING" class="text-orange-500">Pending</option>
+                                <option value="INACTIVE" class="text-red-600">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Address</label><textarea id="pAddress" rows="2" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs resize-none"></textarea></div>
+                    
+                    <h4 class="text-[11px] font-bold text-gray-800 uppercase tracking-wider mt-6 mb-4 border-b border-gray-100 pb-2">Academy Setup</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Base Monthly Fee (₹)</label><input type="number" id="pFee" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs"></div>
+                        <div class="admin-block"><label class="block text-[10px] font-semibold text-gray-500 mb-1">Branch Assignment</label><select id="pBranch" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs uppercase"><option value="COIMBATORE">COIMBATORE</option><option value="POLLACHI">POLLACHI</option></select></div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-gray-500 mb-2">Enrolled Programs</label>
+                        <div id="p_sports_grid" class="flex flex-wrap gap-4 p-3 bg-gray-50 rounded-md border border-gray-200"></div>
                     </div>
                 </div>
-                <div id="drawerAdminBranch" class="hidden admin-only"><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Admin Transfer Branch</label><input type="text" id="dBranch" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs uppercase"></div>
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</label>
-                    <select id="dStatus" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs font-medium"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive / Dropped</option><option value="ALUMNI">Graduated Alumni</option></select>
+
+                <div class="w-full md:w-80 bg-gray-50 p-6 flex flex-col gap-6 shrink-0">
+                    
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-[11px] font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5"><i class="ph ph-calendar-check text-base"></i> Attendance</h4>
+                        </div>
+                        <div id="uiAttendanceContainer" class="space-y-4">
+                            </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col">
+                        <h4 class="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-4 flex items-center gap-1.5"><i class="ph ph-currency-inr text-base"></i> Fee Ledger</h4>
+                        <div class="space-y-3 mb-4">
+                            <div class="flex justify-between items-center text-xs"><span class="text-gray-500 font-medium">Monthly Due:</span><span class="font-bold text-gray-900" id="uiFeeDue">₹0</span></div>
+                            
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500 font-medium">Months Pending:</span>
+                                <input type="number" id="pPendingMonths" class="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs text-right font-bold" value="0" min="0">
+                            </div>
+                        </div>
+                        <div class="mt-auto">
+                            <button onclick="window.location.href='accounting.html?student_id=' + document.getElementById('pId').value" class="w-full border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium py-2 rounded-md text-[11px] transition-colors flex items-center justify-center gap-1.5"><i class="ph ph-receipt"></i> Log New Payment</button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-            <div class="mt-6 border-t border-gray-100 pt-6 space-y-6">
-                <div><h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3"><i class="ph ph-notebook mr-1"></i> Recent Attendance</h4><div id="dAttHistory" class="space-y-1.5"></div></div>
-                <div><h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3"><i class="ph ph-wallet mr-1"></i> Fee History</h4><div id="dFeeHistory" class="space-y-1.5"></div></div>
+            
+            <div class="p-4 border-t border-gray-100 bg-white shrink-0 flex gap-3 justify-end">
+                <button onclick="deleteStudentProfile()" class="px-4 border border-red-200 text-red-600 hover:bg-red-50 font-medium rounded-md text-xs transition-colors flex items-center justify-center admin-block"><i class="ph ph-trash"></i></button>
+                <button onclick="updateStudentProfile()" class="bg-black hover:bg-gray-800 text-white font-medium px-6 py-2 rounded-md text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"><i class="ph ph-floppy-disk text-sm"></i> Save Updates</button>
             </div>
-        </div>
-        <div class="p-4 border-t border-gray-100 bg-gray-50/50 shrink-0 flex gap-3">
-            <button onclick="deleteStudentProfile()" class="px-4 bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium rounded-md text-xs transition-colors flex items-center justify-center admin-only"><i class="ph ph-trash"></i></button>
-            <button onclick="updateStudentProfile()" class="flex-1 bg-black hover:bg-gray-800 text-white font-medium py-2.5 rounded-md text-xs transition-colors flex items-center justify-center gap-2"><i class="ph ph-floppy-disk text-sm"></i> Save Updates</button>
         </div>
     </div>
 
     <script>
-        if (localStorage.getItem('scorp_role') === 'SUPER_ADMIN') document.getElementById('admitStudentBtn').style.display = 'none';
         const authHeaders = { 'Authorization': `Bearer ${localStorage.getItem('scorp_token')}`, 'Content-Type': 'application/json' };
         let activeStudents = [];
+        let globalSportsList = [];
 
-        function openStudentModal() { document.getElementById('studentModal').classList.remove('hidden'); document.getElementById('modalBackdrop').classList.remove('hidden'); }
-        function closeStudentModal() { document.getElementById('studentModal').classList.add('hidden'); document.getElementById('modalBackdrop').classList.add('hidden'); document.getElementById('studentForm').reset(); }
-        function closeDrawer() { document.getElementById('drawerBackdrop').classList.add('hidden'); document.getElementById('profileDrawer').classList.add('translate-x-full'); }
-
-        async function loadStudentsData() {
-            const body = document.getElementById('studentsTableBody');
-            body.innerHTML = `<tr><td colspan="5" class="p-5 text-gray-400 text-center animate-pulse font-medium">Syncing...</td></tr>`;
-            try {
-                const res = await fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders });
-                if(res.ok) {
-                    activeStudents = await res.json();
-                    body.innerHTML = '';
-                    if(activeStudents.length === 0) { body.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-gray-400">No students found.</td></tr>`; return; }
-                    
-                    activeStudents.reverse().forEach(s => {
-                        const statusBadge = s.status === 'ACTIVE' ? `<span class="px-2 py-0.5 bg-black text-white rounded text-[10px] font-medium tracking-wider uppercase">ACTIVE</span>` : `<span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-medium tracking-wider uppercase">${s.status}</span>`;
-                        const sportsStr = s.enrolled_sports ? s.enrolled_sports.join(', ') : 'Karate';
-
-                        body.innerHTML += `
-                            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer group" onclick="openStudentDrawer('${s.id}')">
-                                <td class="px-5 py-3 font-medium text-gray-900 group-hover:text-black">${s.first_name} ${s.last_name}</td>
-                                <td class="px-5 py-3 text-gray-600"><span class="px-2 py-0.5 bg-gray-100 border rounded text-[10px] font-bold uppercase tracking-wide">${s.branch_name}</span></td>
-                                <td class="px-5 py-3 text-gray-700">${sportsStr} <span class="text-[10px] font-mono text-gray-400 ml-1 uppercase">${s.current_belt}</span></td>
-                                <td class="px-5 py-3 text-gray-500 font-mono">${s.phone}</td>
-                                <td class="px-5 py-3 text-right">${statusBadge}</td>
-                            </tr>`;
-                    });
-                }
-            } catch(e) { body.innerHTML = `<tr><td colspan="5" class="p-5 text-red-500 text-center">Connection failure.</td></tr>`; }
+        // Role Visiblity Logic
+        if (localStorage.getItem('scorp_role') === 'SUPER_ADMIN') {
+            document.querySelectorAll('.admin-block').forEach(el => el.style.display = 'inline-flex');
+            if (document.getElementById('admitStudentBtn')) document.getElementById('admitStudentBtn').style.display = 'none';
+        } else {
+            document.querySelectorAll('.admin-block').forEach(el => el.style.display = 'none');
+            if (document.getElementById('admitStudentBtn')) document.getElementById('admitStudentBtn').style.display = 'inline-flex';
         }
 
-        // Excel Export for Students
+        function globalSort(arr, type) {
+            if(type === 'alphabet') return arr.sort((a,b) => (a.first_name||'').localeCompare(b.first_name||''));
+            if(type === 'age') return arr.sort((a,b) => (a.age||0) - (b.age||0));
+            if(type === 'gender') return arr.sort((a,b) => (a.gender||'').localeCompare(b.gender||''));
+            return arr;
+        }
+
+        async function fetchSportsCheckboxes() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/sports/', { headers: authHeaders });
+                globalSportsList = await res.json();
+                const boxes = globalSportsList.map(s => `<label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer"><input type="checkbox" value="${s.name}" class="rounded border-gray-300 text-black focus:ring-black"> ${s.name}</label>`).join('');
+                document.getElementById('s_sports_grid').innerHTML = boxes;
+                document.getElementById('p_sports_grid').innerHTML = boxes;
+            } catch(e) { console.error("Sports fetch failed."); }
+        }
+
+        async function loadStudentsData() {
+            document.getElementById('studentTableBody').innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 animate-pulse">Syncing directory...</td></tr>`;
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders });
+                activeStudents = await res.json();
+                renderStudents();
+            } catch (err) { document.getElementById('studentTableBody').innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500">Connection error.</td></tr>`; }
+        }
+
+        function renderStudents() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const sortType = document.getElementById('mainSort').value;
+            let filtered = activeStudents.filter(s => (s.first_name + ' ' + s.last_name).toLowerCase().includes(query) || (s.phone||'').includes(query));
+            filtered = globalSort(filtered, sortType);
+
+            const tbody = document.getElementById('studentTableBody');
+            if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">No students found.</td></tr>`; return; }
+            
+            tbody.innerHTML = filtered.map(s => {
+                const today = new Date();
+                const past10th = today.getDate() > 10;
+                let autoStatus = s.status || 'ACTIVE';
+                
+                // SMART FLAG: Automatically display PENDING if past the 10th with months owed
+                if (autoStatus !== 'INACTIVE' && s.pending_months > 0 && past10th) {
+                    autoStatus = 'PENDING';
+                }
+
+                const isInactive = autoStatus === 'INACTIVE';
+                let statusColor = isInactive ? 'bg-red-500' : (autoStatus === 'PENDING' ? 'bg-orange-500' : 'bg-green-500');
+                let statusTextClass = isInactive ? 'text-red-500' : (autoStatus === 'PENDING' ? 'text-orange-500' : 'text-green-600');
+
+                const programs = s.enrolled_sports ? s.enrolled_sports.join(', ') : (s.style || 'None');
+                return `
+                <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer ${isInactive ? 'opacity-50 grayscale' : ''}" onclick='openProfileModal(${JSON.stringify(s).replace(/'/g, "&#39;")})'>
+                    <td class="px-5 py-3"><div class="font-semibold text-gray-900">${s.first_name} ${s.last_name||''}</div></td>
+                    <td class="px-5 py-3 font-mono text-gray-600">${s.phone}</td>
+                    <td class="px-5 py-3"><div class="font-medium text-gray-900">${programs}</div><div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-0.5">${s.current_belt}</div></td>
+                    <td class="px-5 py-3 text-[10px] text-gray-500 font-mono space-y-0.5"><div>Age: ${s.age||'N/A'}</div><div>Gen: ${s.gender||'N/A'}</div></td>
+                    <td class="px-5 py-3"><span class="px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-600 rounded text-[10px] font-bold uppercase tracking-wider">${s.branch_name||'N/A'}</span></td>
+                    <td class="px-5 py-3"><span class="${statusTextClass} font-bold text-[10px] uppercase tracking-wider flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full ${statusColor}"></div>${autoStatus}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Export Function
         function exportStudents() {
             if (activeStudents.length === 0) return alert("No students to export.");
+            const sortType = document.getElementById('mainSort').value;
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            let exportArr = globalSort(activeStudents.filter(s => (s.first_name + ' ' + s.last_name).toLowerCase().includes(query)), sortType);
+
+            const exportData = exportArr.map(s => {
+                const today = new Date();
+                let autoStatus = s.status || 'ACTIVE';
+                if (autoStatus !== 'INACTIVE' && s.pending_months > 0 && today.getDate() > 10) autoStatus = 'PENDING';
+
+                return {
+                    "First Name": s.first_name, "Last Name": s.last_name, "Branch": s.branch_name, "Phone": s.phone,
+                    "Age": s.age, "Gender": s.gender, "Blood Type": s.blood_type, "Address": s.address,
+                    "Enrolled Programs": s.enrolled_sports ? s.enrolled_sports.join(', ') : 'None',
+                    "Current Belt": s.current_belt, 
+                    "Status": autoStatus, 
+                    "Months Pending": s.pending_months || 0,
+                    "Monthly Fee (₹)": s.custom_fee || 0
+                };
+            });
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Student Directory");
+            XLSX.writeFile(wb, "Scorpion_Academy_Students.xlsx");
+        }
+
+        // Modals
+        function openAdmitModal() { document.getElementById('addStudentForm').reset(); document.getElementById('studentModal').classList.remove('hidden'); }
+        function closeModals() { document.getElementById('studentModal').classList.add('hidden'); document.getElementById('profileModal').classList.add('hidden'); }
+        
+        // Admit Student Submit
+        document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const checkedSports = Array.from(document.querySelectorAll('#s_sports_grid input:checked')).map(cb => cb.value);
+            const payload = {
+                first_name: document.getElementById('s_first').value, last_name: document.getElementById('s_last').value,
+                age: document.getElementById('s_age').value, gender: document.getElementById('s_gender').value,
+                blood_type: document.getElementById('s_blood').value, address: document.getElementById('s_address').value,
+                phone: document.getElementById('s_phone').value, custom_fee: document.getElementById('s_fee').value,
+                pending_months: 0, // Starts at 0
+                style: checkedSports.join(',')
+            };
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/students/', { method: 'POST', headers: authHeaders, body: JSON.stringify(payload) });
+                if(res.ok) { closeModals(); loadStudentsData(); } else { alert((await res.json()).error); }
+            } catch (err) { alert("Failed to admit."); }
+        });
+
+        // Open Profile Popup & Load Independent Sport Attendance
+        async function openProfileModal(student) {
+            document.getElementById('headerProfileName').innerText = `${student.first_name} ${student.last_name || ''}`;
+            document.getElementById('pId').value = student.id;
+            document.getElementById('pFirst').value = student.first_name;
+            document.getElementById('pLast').value = student.last_name || '';
+            document.getElementById('pAge').value = student.age || '';
+            document.getElementById('pGender').value = student.gender || '';
+            document.getElementById('pBlood').value = student.blood_type || '';
+            document.getElementById('pAddress').value = student.address || '';
+            document.getElementById('pPhone').value = student.phone;
+            document.getElementById('pFee').value = student.custom_fee || 0;
+            document.getElementById('pStatus').value = student.status || 'ACTIVE';
+            document.getElementById('uiFeeDue').innerText = `₹${student.custom_fee || 0}`;
+            document.getElementById('pPendingMonths').value = student.pending_months || 0;
             
-            // 1. Format the data perfectly for Excel
-            const exportData = activeStudents.map(s => ({
-                "First Name": s.first_name,
-                "Last Name": s.last_name,
-                "Branch": s.branch_name,
-                "Phone": s.phone,
-                "Enrolled Programs": s.enrolled_sports ? s.enrolled_sports.join(', ') : 'Karate',
-                "Current Belt": s.current_belt,
-                "Status": s.status,
-                "Monthly Fee (₹)": s.custom_fee || 0
-            }));
+            if(document.getElementById('pBranch')) document.getElementById('pBranch').value = student.branch_name || 'COIMBATORE';
+            
+            const checks = document.querySelectorAll('#p_sports_grid input[type="checkbox"]');
+            checks.forEach(cb => cb.checked = false);
+            if(student.enrolled_sports) { student.enrolled_sports.forEach(s => { checks.forEach(cb => { if(cb.value===s) cb.checked = true; }) }); }
+            
+            document.getElementById('profileModal').classList.remove('hidden');
 
-            // 2. Create the Excel Workbook
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Student Roster");
+            // Fetch Multi-Sport Attendance Stats
+            const attContainer = document.getElementById('uiAttendanceContainer');
+            attContainer.innerHTML = '<div class="text-xs text-gray-400 text-center animate-pulse py-2">Loading logs...</div>';
+            
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/attendance/sessions/', { headers: authHeaders });
+                const sessions = await res.json();
+                
+                let stats = {};
+                // Initialize sports they are enrolled in
+                if (student.enrolled_sports) {
+                    student.enrolled_sports.forEach(sp => stats[sp] = { present: 0, absent: 0 });
+                }
 
-            // 3. Trigger the Download
-            XLSX.writeFile(workbook, "Scorpion_Academy_Students.xlsx");
+                // Tally Records by Sport
+                for (let s of sessions) {
+                    const recRes = await fetch(`http://127.0.0.1:8000/api/attendance/sessions/${s.id}/`, { headers: authHeaders });
+                    const records = await recRes.json();
+                    const studRec = records.find(r => r.student_id === student.id);
+                    if (studRec) {
+                        if (!stats[s.sport]) stats[s.sport] = { present: 0, absent: 0 };
+                        if (studRec.status === 'PRESENT') stats[s.sport].present++;
+                        if (studRec.status === 'ABSENT') stats[s.sport].absent++;
+                    }
+                }
+                
+                // Inject UI for each individual sport
+                let html = '';
+                for (const [sport, counts] of Object.entries(stats)) {
+                    const total = counts.present + counts.absent;
+                    const pct = total > 0 ? Math.round((counts.present / total) * 100) : 0;
+                    let pctColor = pct >= 75 ? 'text-green-700 bg-green-50' : pct >= 50 ? 'text-yellow-700 bg-yellow-50' : 'text-red-700 bg-red-50';
+
+                    html += `
+                    <div class="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                        <div class="flex items-center justify-between mb-2">
+                            <h5 class="text-[10px] font-bold text-gray-600 uppercase tracking-wider">${sport}</h5>
+                            <span class="text-[10px] font-black px-2 py-0.5 rounded ${pctColor}">${pct}%</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col items-center justify-center">
+                                <span class="text-lg font-bold text-green-600">${counts.present}</span>
+                                <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Present</span>
+                            </div>
+                            <div class="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col items-center justify-center">
+                                <span class="text-lg font-bold text-red-500">${counts.absent}</span>
+                                <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Absent</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+                if (Object.keys(stats).length === 0) html = `<div class="text-xs text-gray-400 text-center py-2">No class history.</div>`;
+                attContainer.innerHTML = html;
+
+            } catch (e) {
+                attContainer.innerHTML = `<div class="text-xs text-red-500 text-center py-2">Error loading stats</div>`;
+            }
+        }
+
+        async function updateStudentProfile() {
+            const checkedSports = Array.from(document.querySelectorAll('#p_sports_grid input:checked')).map(cb => cb.value);
+            const payload = {
+                student_id: document.getElementById('pId').value, 
+                first_name: document.getElementById('pFirst').value, 
+                last_name: document.getElementById('pLast').value,   
+                phone: document.getElementById('pPhone').value,
+                age: document.getElementById('pAge').value, 
+                gender: document.getElementById('pGender').value,
+                blood_type: document.getElementById('pBlood').value, 
+                address: document.getElementById('pAddress').value,
+                custom_fee: document.getElementById('pFee').value, 
+                status: document.getElementById('pStatus').value,
+                pending_months: document.getElementById('pPendingMonths').value, // Tracks the penalty
+                style: checkedSports.join(',')
+            };
+            if(document.getElementById('pBranch')) payload.branch_name = document.getElementById('pBranch').value;
+            
+            try {
+                await fetch('http://127.0.0.1:8000/api/students/', { method: 'PUT', headers: authHeaders, body: JSON.stringify(payload) });
+                closeModals(); loadStudentsData();
+            } catch (err) { alert("Failed to save updates."); }
         }
 
         async function deleteStudentProfile() {
-            if (!confirm("CRITICAL WARNING: Are you sure you want to permanently delete this student? All attendance and payment history will be erased.")) return;
-            
-            const studentId = document.getElementById('dId').value;
+            if(!confirm("CRITICAL: Permanently delete this student and all records?")) return;
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/students/', { 
-                    method: 'DELETE', 
-                    headers: authHeaders, 
-                    body: JSON.stringify({ student_id: studentId }) 
-                });
-                
-                if(res.ok) { 
-                    closeDrawer(); 
-                    loadStudentsData(); 
-                } else { 
-                    alert(`Error: ${(await res.json()).error}`); 
-                }
-            } catch (err) { alert("Failed to delete profile."); }
+                await fetch('http://127.0.0.1:8000/api/students/', { method: 'DELETE', headers: authHeaders, body: JSON.stringify({ student_id: document.getElementById('pId').value }) });
+                closeModals(); loadStudentsData();
+            } catch (err) { alert("Failed to delete."); }
         }
 
-        async function openStudentDrawer(id) {
-            const student = activeStudents.find(s => s.id === id);
-            if(!student) return;
-
-            document.getElementById('dId').value = student.id;
-            document.getElementById('dName').textContent = `${student.first_name} ${student.last_name}`;
-            document.getElementById('dBelt').textContent = `${student.current_belt} BELT`;
-            document.getElementById('dPhone').value = student.phone;
-            document.getElementById('dFee').value = student.custom_fee || 0;
-            document.getElementById('dStatus').value = student.status || 'ACTIVE';
-            
-            const enrolled = student.enrolled_sports || ['Karate'];
-            document.querySelectorAll('.drawer-sport-cb').forEach(cb => cb.checked = enrolled.includes(cb.value));
-
-            if (localStorage.getItem('scorp_role') === 'SUPER_ADMIN') document.getElementById('dBranch').value = student.branch_name;
-
-            document.getElementById('drawerBackdrop').classList.remove('hidden');
-            document.getElementById('profileDrawer').classList.remove('translate-x-full');
-
-            try {
-                const res = await fetch(`http://127.0.0.1:8000/api/students/${id}/history/`, { headers: authHeaders });
-                const history = await res.json();
-                
-                document.getElementById('dAttHistory').innerHTML = history.attendance.map(a => `<div class="flex justify-between text-[11px] bg-gray-50 px-3 py-1.5 rounded"><span class="text-gray-600 font-mono">${a.date}</span><span class="font-bold ${a.status==='PRESENT'?'text-green-600':'text-red-500'} uppercase">${a.status}</span></div>`).join('') || '<div class="text-[11px] text-gray-400 italic">No attendance records.</div>';
-                document.getElementById('dFeeHistory').innerHTML = history.fees.map(f => `<div class="flex justify-between text-[11px] bg-gray-50 px-3 py-1.5 rounded"><span class="text-gray-600 font-mono">${f.date}</span><span class="font-bold text-green-600">₹${f.amount}</span></div>`).join('') || '<div class="text-[11px] text-gray-400 italic">No payments.</div>';
-            } catch(e) {}
-        }
-
-        document.getElementById('studentForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const selectedSports = Array.from(document.querySelectorAll('.modal-sport-cb:checked')).map(cb => cb.value);
-            if(selectedSports.length === 0) selectedSports.push('Karate');
-
-            const payload = { 
-                first_name: document.getElementById('s_first').value, 
-                last_name: document.getElementById('s_last').value, 
-                phone: document.getElementById('s_phone').value, 
-                custom_fee: document.getElementById('s_fee').value,
-                style: selectedSports 
-            };
-            const res = await fetch('http://127.0.0.1:8000/api/students/', { method: 'POST', headers: authHeaders, body: JSON.stringify(payload) });
-            if(res.ok) { closeStudentModal(); loadStudentsData(); } else { alert(`Error: ${(await res.json()).error}`); }
-        });
-
-        async function updateStudentProfile() {
-            const selectedSports = Array.from(document.querySelectorAll('.drawer-sport-cb:checked')).map(cb => cb.value);
-            const payload = { 
-                student_id: document.getElementById('dId').value, 
-                phone: document.getElementById('dPhone').value, 
-                custom_fee: document.getElementById('dFee').value,
-                style: selectedSports, 
-                status: document.getElementById('dStatus').value 
-            };
-            if (localStorage.getItem('scorp_role') === 'SUPER_ADMIN') payload.branch_name = document.getElementById('dBranch').value;
-
-            try {
-                await fetch('http://127.0.0.1:8000/api/students/', { method: 'PUT', headers: authHeaders, body: JSON.stringify(payload) });
-                closeDrawer(); loadStudentsData();
-            } catch (err) { alert("Failed to update profile."); }
-        }
-
-        function searchStudents() { const input = document.getElementById('studentSearch').value.toLowerCase(); document.querySelectorAll('#studentsTableBody tr').forEach(row => row.style.display = row.textContent.toLowerCase().includes(input) ? '' : 'none'); }
-        loadStudentsData();
+        fetchSportsCheckboxes().then(loadStudentsData);
     </script>
 </body>
 </html>

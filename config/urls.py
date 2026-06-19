@@ -3,7 +3,7 @@ from sports.views_progression import ProgressionEngineView
 from students.views_dashboard import UnifiedDashboardMetricsView
 from students.views_enrollments import StudentEnrollmentView
 from sports.views_scheduling import BatchSchedulingView
-from finance.views import InvoiceCreatePaymentView
+from finance.views import FinanceLedgerView
 from students.views_export import EnterpriseDataExportView 
 from accounts.views_instructors import InstructorManagementView
 from students.views import StudentPromoteView
@@ -11,8 +11,11 @@ from django.urls import path
 from students.views_attendance import AttendanceSessionView, AttendanceEligibleStudentsView, AttendanceSessionDetailView
 from accounts.views_branches import BranchListView
 from students.views_exams import ExamSessionView, ExamEligibleStudentsView, ExamSessionDetailView
+from sports.views_sports import SportsManagementView, SportRosterView
 
 urlpatterns = [
+    path('api/sports/', SportsManagementView.as_view()),
+    path('api/sports/<str:sport_name>/roster/', SportRosterView.as_view()),
     path('api/auth/', include('accounts.urls')),
     path('api/sports/', include('sports.urls')),
     path('api/branches/', BranchListView.as_view(), name='branch_list'),
@@ -27,7 +30,7 @@ urlpatterns = [
     
     
     # Financial Ledger Routing Hook
-    path('api/finance/ledger/', InvoiceCreatePaymentView.as_view(), name='financial_ledger'),
+    path('api/finance/ledger/', FinanceLedgerView.as_view()),
     # Location: config/urls.py (Your global root routing file)
     # Add this entry inside your main project urlpatterns array:
 

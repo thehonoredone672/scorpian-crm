@@ -26,6 +26,52 @@ def get_true_branch(user):
     return branch.strip().upper() if branch else ""
 # -------------------------------------------
 
+# --- AGGRESSIVE NAME RESOLUTION HELPER ---
+def get_true_name(user):
+    user_id = None
+    email = None
+    name = None
+    
+    # 1. Safely extract data whether 'user' is a dictionary OR a class object
+    if isinstance(user, dict):
+        user_id = user.get('_id') or user.get('id') or user.get('user_id')
+        email = user.get('email')
+        name = user.get('name')
+    else:
+        user_id = getattr(user, 'id', None) or getattr(user, '_id', None)
+        email = getattr(user, 'email', None)
+        name = getattr(user, 'name', None)
+        
+        # Check if custom auth attached a payload dictionary
+        if not name and hasattr(user, 'dict') and isinstance(user.dict, dict):
+            name = user.dict.get('name')
+            user_id = user_id or user.dict.get('_id')
+            email = email or user.dict.get('email')
+
+    # 2. FORCE a direct MongoDB lookup using the exact "_id" or "email"
+    from bson import ObjectId
+    from database.mongodb_client import db
+    
+    if not name and user_id:
+        try:
+            record = db.users.find_one({"_id": ObjectId(str(user_id))})
+            if record and record.get('name'):
+                return str(record.get('name'))
+        except: pass
+        
+    if not name and email:
+        try:
+            record = db.users.find_one({"email": email})
+            if record and record.get('name'):
+                return str(record.get('name'))
+        except: pass
+        
+    # 3. Final Fallbacks
+    if name: return str(name)
+    if email: return str(email).split('@')[0]
+    return "Instructor"
+# -----------------------------------------
+
 class AttendanceSessionView(APIView):
     authentication_classes = [MongoJWTAuthentication]
 
@@ -48,7 +94,7 @@ class AttendanceSessionView(APIView):
         if not branch:
             return Response({"error": "Instructor branch assignment missing."}, status=status.HTTP_400_BAD_REQUEST)
 
-        instructor_name = getattr(request.user, 'name', None) or (request.user.dict.get('name') if hasattr(request.user, 'dict') else 'Instructor')
+        instructor_name = get_true_name(request.user)
         
         data = request.data
         sport = data.get('sport')

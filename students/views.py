@@ -82,6 +82,12 @@ class StudentDirectoryView(APIView):
         sports_input = data.get("style", ["Karate"])
         sports_array = [s.strip() for s in sports_input.split(',')] if isinstance(sports_input, str) else sports_input
 
+        try: age = int(data.get("age", 0))
+        except (ValueError, TypeError): age = 0
+        gender = str(data.get("gender", "")).strip().upper()
+        blood_type = str(data.get("blood_type", "")).strip().upper()
+        address = str(data.get("address", "")).strip()
+
         new_student = {
             "first_name": first_name,
             "last_name": last_name,
@@ -92,6 +98,10 @@ class StudentDirectoryView(APIView):
             "current_belt": "WHITE",
             "branch_name": instructor_branch,
             "status": "ACTIVE",
+            "age": age,
+            "gender": gender,
+            "blood_type": blood_type,
+            "address": address,
             "created_at": datetime.datetime.utcnow()
         }
 
@@ -120,6 +130,16 @@ class StudentDirectoryView(APIView):
 
         if getattr(request.user, 'role', '') == 'SUPER_ADMIN' and "branch_name" in request.data:
             update_fields["branch_name"] = request.data.get("branch_name").strip().upper()
+
+        if "age" in request.data:
+            try: update_fields["age"] = int(request.data.get("age", 0))
+            except (ValueError, TypeError): update_fields["age"] = 0
+        if "gender" in request.data:
+            update_fields["gender"] = str(request.data.get("gender", "")).strip().upper()
+        if "blood_type" in request.data:
+            update_fields["blood_type"] = str(request.data.get("blood_type", "")).strip().upper()
+        if "address" in request.data:
+            update_fields["address"] = str(request.data.get("address", "")).strip()
 
         try:
             db['students'].update_one({"_id": ObjectId(student_id)}, {"$set": update_fields})

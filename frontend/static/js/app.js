@@ -1,5 +1,9 @@
 // frontend/static/js/app.js
-
+// --- BRUTALIST SNAP-LOAD (ZERO FLICKER, ZERO ANIMATION) ---
+document.write(`<style>html, body { background-color: #FAFAFA !important; } body { visibility: hidden; }</style>`);
+window.addEventListener('DOMContentLoaded', () => { document.body.style.visibility = 'visible'; });
+// ----------------------------------------------------------
+// -------------------------------------------
 // 1. Sanitize the local storage cache
 let cachedName = localStorage.getItem('scorp_real_name');
 if (!cachedName || cachedName === 'undefined' || cachedName === 'null') {
@@ -59,6 +63,8 @@ function renderGlobalSidebar() {
                     ${role !== 'SUPER_ADMIN' ? `<a href="accounting.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-wallet text-base"></i> Accounting</a>` : ''}
                     
                     ${role === 'SUPER_ADMIN' ? `<a href="exams.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-certificate text-base"></i> Belt Exams</a>` : ''}
+                    
+                    ${role === 'SUPER_ADMIN' ? `<a href="sports.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-barbell text-base"></i> Sports Programs</a>` : ''}
                     
                     ${role === 'SUPER_ADMIN' ? `<a href="instructors.html" class="nav-link flex items-center gap-2.5 px-2.5 py-1.5 text-gray-400 hover:bg-white/5 hover:text-white rounded-md font-medium transition-colors"><i class="ph ph-chalkboard-teacher text-base"></i> Instructors</a>` : ''}
                 </nav>
@@ -133,3 +139,10 @@ function renderGlobalSidebar() {
 // Ensures the sidebar mounts instantly or waits for DOM depending on load state
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', renderGlobalSidebar); } 
 else { renderGlobalSidebar(); }
+
+window.applyGlobalSort = function(dataArray, sortBy) {
+    if (sortBy === 'alphabet') return dataArray.sort((a, b) => (a.first_name || a.name || '').localeCompare(b.first_name || b.name || ''));
+    if (sortBy === 'age') return dataArray.sort((a, b) => (a.age || 0) - (b.age || 0));
+    if (sortBy === 'gender') return dataArray.sort((a, b) => (a.gender || '').localeCompare(b.gender || ''));
+    return dataArray;
+};

@@ -6,71 +6,63 @@ from accounts.authentication import MongoJWTAuthentication
 from bson import ObjectId
 import datetime
 
-class InvoiceCreatePaymentView(APIView):
-    """
-    Core API Controller for SRS Module 7 (Fee Management).
-    Tracks double-entry style debits (Invoices) and credits (Payments) inside MongoDB.
-    """
+class FinanceLedgerView(APIView):
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
-        """Fetches the comprehensive financial ledger stream across the active branch tenant context."""
-        user = request.user
-        query = {}
-
-        # Maintain multi-tenant operational security isolation
-        if user.role != 'SUPER_ADMIN' and hasattr(user, 'branch_id'):
-            query["branch_id"] = ObjectId(user.branch_id)
-
-        try:
-            ledger_cursor = db['payments'].find(query)
-            ledger_payload = []
-
-            for tx in ledger_cursor:
-                ledger_payload.append({
-                    "_id": str(tx.get('_id')),
-                    "student_id": str(tx.get('student_id')),
-                    "branch_id": str(tx.get('branch_id')) if tx.get('branch_id') else None,
-                    "amount": float(tx.get('amount', 0.00)),
-                    "type": tx.get('type', 'DEBIT'), # DEBIT = Invoice Issued, CREDIT = Payment Paid
-                    "payment_mode": tx.get('payment_mode', 'UPI'), # UPI, CASH, BANK_TRANSFER, CARD
-                    "description": tx.get('description', 'Monthly Training Fee Partition'),
-                    "timestamp": tx.get('payment_date', datetime.datetime.utcnow().isoformat())
-                })
-            
-            # Returns the ledger stream reverse-chronologically
-            return Response(ledger_payload[::-1], status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": f"Ledger system aggregate fetch aborted: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Fetch the latest 100 transactions
+        transactions = list(db['finance_ledger'].find().sort("created_at", -1).limit(100))
+        for t in transactions: 
+            t['id'] = str(t.pop('_id'))
+            if 'student_id' in t: t['student_id'] = str(t['student_id'])
+        return Response(transactions, status=status.HTTP_200_OK)
 
     def post(self, request):
-        """Commits a brand-new financial transaction directly into the immutable ledger blocks."""
-        user = request.user
         data = request.data
-
-        # Explicit payload data checks
         student_id = data.get('student_id')
         amount = data.get('amount')
-        tx_type = data.get('type') # EXPECTS: "DEBIT" or "CREDIT"
+        method = data.get('method', 'CASH')
+        reference = data.get('reference', '')
 
-        if not student_id or amount is None or not tx_type:
-            return Response({"error": "Missing transaction parameters: student_id, amount, and type are required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not student_id or amount is None:
+            return Response({"error": "Student ID and Amount are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            tx_document = {
-                "student_id": ObjectId(student_id),
-                "amount": float(amount),
-                "type": tx_type.upper(),
-                "payment_mode": data.get('payment_mode', 'UPI').upper(),
-                "description": data.get('description', 'Training Fee Apportionment').strip(),
-                "payment_date": datetime.datetime.utcnow().isoformat(),
-                "branch_id": ObjectId(user.branch_id) if hasattr(user, 'branch_id') else None
-            }
+            amount = float(amount)
+        except ValueError:
+            return Response({"error": "Invalid amount format."}, status=status.HTTP_400_BAD_REQUEST)
 
-            result = db['payments'].insert_one(tx_document)
-            return Response({
-                "message": "Financial parameter logged safely to cloud database partition.",
-                "tx_id": str(result.inserted_id)
-            }, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"error": f"Ledger transactional logging execution aborted: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # 1. Verify Student
+        student = db['students'].find_one({"_id": ObjectId(str(student_id))})
+        if not student:
+            return Response({"error": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Record the Transaction
+        transaction = {
+            "student_id": ObjectId(str(student_id)),
+            "student_name": f"{student.get('first_name', '')} {student.get('last_name', '')}".strip(),
+            "branch_name": student.get('branch_name', 'UNKNOWN'),
+            "amount": amount,
+            "method": method.upper(),
+            "reference": reference,
+            "processed_by": getattr(request.user, 'name', 'System Admin'),
+            "created_at": datetime.datetime.utcnow(),
+            "date_string": datetime.datetime.now().strftime("%Y-%m-%d")
+        }
+        db['finance_ledger'].insert_one(transaction)
+
+        # 3. Smart Automation: Deduct Pending Months
+        current_pending = int(student.get('pending_months', 0))
+        if current_pending > 0:
+            # Assuming 1 payment covers 1 month. You can adjust this math later if needed.
+            new_pending = max(0, current_pending - 1) 
+            
+            # Auto-restore status to ACTIVE if they paid off their debt
+            new_status = 'ACTIVE' if new_pending == 0 and student.get('status') == 'PENDING' else student.get('status')
+            
+            db['students'].update_one(
+                {"_id": ObjectId(str(student_id))},
+                {"$set": {"pending_months": new_pending, "status": new_status}}
+            )
+
+        return Response({"message": "Payment recorded successfully."}, status=status.HTTP_201_CREATED)
