@@ -3,137 +3,163 @@ from rest_framework.response import Response
 from rest_framework import status
 from database.mongodb_client import db
 from accounts.authentication import MongoJWTAuthentication
-from bson import ObjectId
 import datetime
-import math
+from bson import ObjectId
+
+def get_true_branch(user):
+    branch = getattr(user, 'branch_name', None)
+    if not branch and hasattr(user, 'dict'): branch = user.dict.get('branch_name')
+    if not branch:
+        user_id = getattr(user, 'id', None) or (user.dict.get('_id') if hasattr(user, 'dict') else None)
+        if user_id:
+            try:
+                record = db.users.find_one({"_id": ObjectId(str(user_id))})
+                if record: branch = record.get('branch_name')
+            except: pass
+    return branch.strip().upper() if branch else ""
 
 class UnifiedDashboardMetricsView(APIView):
     authentication_classes = [MongoJWTAuthentication]
 
     def get(self, request):
-        user = request.user
-        
-        # FIX 1: Use Local Server Time instead of UTC to prevent Midnight Timezone desync in India
-        current_datetime = datetime.datetime.now()
-        today_date = current_datetime.strftime("%Y-%m-%d")
-        current_month_prefix = current_datetime.strftime("%Y-%m")
-        
-        # 10th DAY RULE CHECK
-        is_past_collection_date = current_datetime.day > 10
-
         try:
-            # 1. Resolve Exact Profile Name
-            user_id = getattr(user, 'id', None) or (user.dict.get('_id') if hasattr(user, 'dict') else None)
-            user_record = db.users.find_one({"_id": ObjectId(str(user_id))}) if user_id else None
-            
-            display_name = "Authorized User"
-            if user_record and user_record.get("name"):
-                display_name = user_record.get("name")
-            elif getattr(user, 'name', None):
-                display_name = getattr(user, 'name')
-            elif user_record and user_record.get("email"):
-                display_name = user_record.get("email").split('@')[0]
-                
-            user_role = getattr(user, 'role', 'INSTRUCTOR')
+            role = getattr(request.user, 'role', 'INSTRUCTOR')
+            branch = get_true_branch(request.user)
+            today = datetime.datetime.now()
+            today_str = today.strftime("%Y-%m-%d")
+            month_str = today.strftime("%Y-%m")
+            past10th = today.day > 10
 
-            # 2. Pull Database Snapshots
-            all_students = list(db['students'].find({"status": "ACTIVE"}))
-            all_instructors = list(db.users.find({"role": "INSTRUCTOR"}))
-            all_attendance = list(db['attendance'].find({"date": today_date}))
-            all_payments = list(db['payments'].find({"type": "CREDIT"}))
+            # ---------------------------------------------------------
+            # SUPER ADMIN LOGIC (Clean Global Overview + 3-Col Branches)
+            # ---------------------------------------------------------
+            if role == 'SUPER_ADMIN':
+                students = list(db['students'].find())
+                instructors = list(db['users'].find({"role": "INSTRUCTOR"}))
+                today_sessions = list(db['attendance_sessions'].find({"date": today_str}))
+                month_ledgers = list(db['finance_ledger'].find({"date_string": {"$regex": f"^{month_str}"}}))
 
-            # 3. AGGRESSIVE BRANCH AGGREGATION
-            db_branches = [str(b.get('name')).strip().upper() for b in db['branches'].find({}) if b.get('name')]
-            staff_branches = [str(u.get('branch_name')).strip().upper() for u in all_instructors if u.get('branch_name')]
-            student_branches = [str(s.get('branch_name')).strip().upper() for s in all_students if s.get('branch_name')]
-            
-            branch_names = sorted(list(set(db_branches + staff_branches + student_branches)))
+                total_active = sum(1 for s in students if s.get('status') != 'INACTIVE')
+                collected_month = sum(float(l.get('amount', 0)) for l in month_ledgers)
+                pending_month = sum(float(s.get('outstanding_balance', 0)) for s in students if s.get('status') != 'INACTIVE')
 
-            def compute_scope_data(filter_branch=None):
-                scope_students = [s for s in all_students if not filter_branch or str(s.get('branch_name', '')).strip().upper() == str(filter_branch).upper()]
-                scope_student_ids = {s['_id'] for s in scope_students}
+                branches_dict = {}
 
-                # FIX 2: DEDUPLICATION LOGIC
-                # If a student attends 2 classes today, they are only counted as "1 Present" on the dashboard.
-                student_att_map = {}
-                for a in all_attendance:
-                    sid = a.get('student_id')
-                    if sid in scope_student_ids:
-                        # If they are marked PRESENT in ANY class today, they are globally present
-                        if a.get('status') == 'PRESENT':
-                            student_att_map[sid] = 'PRESENT'
-                        # If absent, only log it if they haven't been marked present in another class today
-                        elif a.get('status') == 'ABSENT' and student_att_map.get(sid) != 'PRESENT':
-                            student_att_map[sid] = 'ABSENT'
+                # 1. Pre-fill all explicit branches from the DB
+                try:
+                    for b in db['branches'].find():
+                        b_name = b.get('name', 'UNKNOWN').upper()
+                        branches_dict[b_name] = {"name": b_name, "instructors": [], "students": 0, "present": 0, "absent": 0, "collected": 0, "pending": 0, "alert_count": 0}
+                except: pass
 
-                present_count = list(student_att_map.values()).count('PRESENT')
-                absent_count = list(student_att_map.values()).count('ABSENT')
-                # -----------------------------
+                # 2. Map Instructors to Branches
+                for inst in instructors:
+                    b_name = inst.get('branch_name', 'UNKNOWN').upper()
+                    if b_name not in branches_dict:
+                        branches_dict[b_name] = {"name": b_name, "instructors": [], "students": 0, "present": 0, "absent": 0, "collected": 0, "pending": 0, "alert_count": 0}
+                    inst_name = inst.get('name', getattr(inst, 'first_name', 'Instructor'))
+                    if inst_name not in branches_dict[b_name]["instructors"]:
+                        branches_dict[b_name]["instructors"].append(inst_name)
 
-                collected_this_month = 0.00
-                pending_this_month = 0.00
-                total_pending_students = 0
-                total_overdue_months = 0
+                # 3. Map Students and Pending Dues
+                for s in students:
+                    b_name = s.get('branch_name', 'UNKNOWN').upper()
+                    if b_name not in branches_dict:
+                        branches_dict[b_name] = {"name": b_name, "instructors": [], "students": 0, "present": 0, "absent": 0, "collected": 0, "pending": 0, "alert_count": 0}
+                    if s.get('status') != 'INACTIVE':
+                        branches_dict[b_name]["students"] += 1
+                        bal = float(s.get('outstanding_balance', 0))
+                        branches_dict[b_name]["pending"] += bal
+                        if bal > 0 and past10th:
+                            branches_dict[b_name]["alert_count"] += 1
 
-                for student in scope_students:
-                    monthly_liability = float(student.get('custom_fee', 0.00))
+                # 4. Map Attendance
+                for s in today_sessions:
+                    b_name = s.get('branch_name', 'UNKNOWN').upper()
+                    if b_name in branches_dict:
+                        branches_dict[b_name]["present"] += s.get('present_count', 0)
+                        branches_dict[b_name]["absent"] += s.get('absent_count', 0)
 
-                    student_payments = [p for p in all_payments if p.get('student_id') == str(student['_id']) or p.get('student_id') == student['_id']]
-                    
-                    student_paid_this_month = sum(float(p.get('amount', 0)) for p in student_payments if str(p.get('timestamp', p.get('date', ''))).startswith(current_month_prefix))
-                    collected_this_month += student_paid_this_month
-                    
-                    if is_past_collection_date:
-                        pending_this_month += max(0.00, monthly_liability - student_paid_this_month)
+                # 5. Map Revenue
+                for l in month_ledgers:
+                    b_name = l.get('branch_name', 'UNKNOWN').upper()
+                    if b_name in branches_dict:
+                        branches_dict[b_name]["collected"] += float(l.get('amount', 0))
 
-                    enrollment_date = student.get('created_at', current_datetime)
-                    if isinstance(enrollment_date, str):
-                        try: enrollment_date = datetime.datetime.fromisoformat(enrollment_date.replace("Z", "+00:00"))
-                        except: enrollment_date = current_datetime
+                # Format Instructor Names
+                for b in branches_dict.values():
+                    b['instructors'] = ", ".join(b['instructors']) if b['instructors'] else "Unassigned"
 
-                    months_enrolled = (current_datetime.year - enrollment_date.year) * 12 + (current_datetime.month - enrollment_date.month) + 1
-                    expected_months_to_pay = months_enrolled if is_past_collection_date else max(0, months_enrolled - 1)
-
-                    if monthly_liability > 0:
-                        total_historical_paid = sum(float(p.get('amount', 0)) for p in student_payments)
-                        months_paid_for = math.floor(total_historical_paid / monthly_liability)
-                        overdue_months = expected_months_to_pay - months_paid_for
-
-                        if overdue_months >= 1:
-                            total_pending_students += 1
-                            total_overdue_months += overdue_months
-
-                return {
-                    "total_students": len(scope_students),
-                    "present": present_count,
-                    "absent": absent_count,
-                    "collected": collected_this_month,
-                    "pending": pending_this_month,
-                    "pending_students_count": total_pending_students,
-                    "total_pending_months": total_overdue_months
-                }
-
-            if user_role == 'SUPER_ADMIN':
-                global_stats = compute_scope_data(filter_branch=None)
-                global_stats["total_instructors"] = len(all_instructors)
-                
-                branch_grid = [{"branch_name": b, "stats": compute_scope_data(b)} for b in branch_names]
+                # Sort branches alphabetically A-Z
+                sorted_branches = sorted(list(branches_dict.values()), key=lambda x: x['name'])
 
                 return Response({
-                    "role": "SUPER_ADMIN",
-                    "name": display_name,
-                    "summary": global_stats,
-                    "branches": branch_grid
+                    "view_type": "ADMIN",
+                    "metrics": {
+                        "total_active": total_active,
+                        "total_instructors": len(instructors),
+                        "collected_month": collected_month,
+                        "pending_month": pending_month,
+                        "branches": sorted_branches
+                    }
                 }, status=status.HTTP_200_OK)
 
+            # ---------------------------------------------------------
+            # INSTRUCTOR LOGIC (Branch Specific + Charts)
+            # ---------------------------------------------------------
             else:
-                instructor_branch = getattr(user, 'branch_name', '').upper()
+                query = {'branch_name': branch} if branch else {}
+                students = list(db['students'].find(query))
+                
+                active_count = 0
+                pending_count = 0
+                for s in students:
+                    status_val = s.get('status', 'ACTIVE')
+                    bal = float(s.get('outstanding_balance', 0))
+                    if status_val != 'INACTIVE' and bal > 0 and past10th: status_val = 'PENDING'
+                    if status_val == 'ACTIVE': active_count += 1
+                    elif status_val == 'PENDING': pending_count += 1
+
+                att_query = query.copy()
+                att_query['date'] = {"$regex": f"^{month_str}"}
+                sessions = list(db['attendance_sessions'].find(att_query))
+                total_p = sum(s.get('present_count', 0) for s in sessions)
+                total_a = sum(s.get('absent_count', 0) for s in sessions)
+                att_rate = int((total_p / (total_p + total_a) * 100)) if (total_p + total_a) > 0 else 0
+
+                fin_query = query.copy()
+                fin_query['date_string'] = {"$regex": f"^{today.strftime('%Y')}"}
+                transactions = list(db['finance_ledger'].find(fin_query))
+
+                fees_by_month = [0] * 12
+                for t in transactions:
+                    date_str = t.get('date_string', '')
+                    if len(date_str) >= 7: fees_by_month[int(date_str[5:7]) - 1] += float(t.get('amount', 0))
+
+                students_by_month = [0] * 12
+                cumulative = 0
+                for i in range(12):
+                    m_str = f"{today.strftime('%Y')}-{str(i+1).zfill(2)}"
+                    cumulative += sum(1 for s in students if str(s.get('created_at', '')).startswith(m_str))
+                    students_by_month[i] = cumulative
+                if cumulative == 0 and len(students) > 0: students_by_month[today.month - 1] = len(students)
+
                 return Response({
-                    "role": "INSTRUCTOR",
-                    "name": display_name,
-                    "summary": compute_scope_data(instructor_branch),
-                    "branches": []
+                    "view_type": "INSTRUCTOR",
+                    "metrics": {
+                        "total_students": len(students),
+                        "active_students": active_count,
+                        "pending_students": pending_count,
+                        "attendance_rate": att_rate
+                    },
+                    "chart": {
+                        "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                        "fees": fees_by_month,
+                        "students": students_by_month
+                    }
                 }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            import traceback
+            print("DASHBOARD CRASH:", traceback.format_exc())
+            return Response({"error": "Dashboard crash. Check terminal."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scorpion Academy | Accounting & Finance</title>
-    <style>
-        html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; }
-        @media (min-width: 768px) { #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } }
-    </style>
+    <title>Scorpion Academy | Accounting</title>
+    <style>html, body { background-color: #FAFAFA !important; margin: 0; padding: 0; } @media (min-width: 768px) { #global-sidebar-container { background-color: #0A0A0A !important; min-width: 15rem; } }</style>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="./static/css/global.css">
     <script src="./static/js/app.js"></script>
 </head>
@@ -25,13 +21,11 @@
             <div class="relative w-full max-w-lg z-30">
                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                 <input type="text" id="liveStudentSearch" onkeyup="filterStudents()" placeholder="Search student name or phone to log payment..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all">
-                
-                <div id="searchDropdown" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl hidden max-h-60 overflow-y-auto">
+                <div id="searchDropdown" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl hidden max-h-60 overflow-y-auto z-50">
                     <ul id="searchResultsList" class="divide-y divide-gray-100"></ul>
                 </div>
             </div>
-
-            <button onclick="exportLedger()" class="border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 transition-colors shrink-0"><i class="ph ph-download"></i> Export</button>
+            <div></div>
         </header>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-8">
@@ -61,34 +55,20 @@
             <form id="paymentForm" class="p-6 space-y-4">
                 <input type="hidden" id="pay_student_id">
                 
-                <div>
-                    <label class="block text-[10px] font-semibold text-gray-500 mb-1">Student</label>
-                    <input type="text" id="pay_student_name" readonly class="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-xs font-medium text-gray-600">
+                <div><input type="text" id="pay_student_name" readonly class="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-xs font-bold text-gray-800 text-center uppercase tracking-wider"></div>
+
+                <div class="grid grid-cols-2 gap-4 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                    <div><span class="block text-[9px] font-bold text-blue-400 uppercase tracking-wider mb-0.5">Base Fee</span><span class="text-sm font-black text-blue-900" id="uiBaseFee">₹0</span></div>
+                    <div class="text-right"><span class="block text-[9px] font-bold text-red-400 uppercase tracking-wider mb-0.5">Pending Due</span><span class="text-sm font-black text-red-600" id="uiPendingDue">₹0</span></div>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-semibold text-gray-500 mb-1">Amount (₹) *</label>
-                        <input type="number" id="pay_amount" required class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs font-bold text-green-600">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-semibold text-gray-500 mb-1">Method *</label>
-                        <select id="pay_method" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs font-semibold">
-                            <option value="CASH">Cash</option>
-                            <option value="UPI">UPI / GPay</option>
-                            <option value="BANK">Bank Transfer</option>
-                        </select>
-                    </div>
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Amount (₹) *</label><input type="number" id="pay_amount" required class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm font-black text-green-600"></div>
+                    <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Method *</label><select id="pay_method" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs font-semibold"><option value="CASH">Cash</option><option value="UPI">UPI / GPay</option><option value="BANK">Bank Transfer</option></select></div>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-semibold text-gray-500 mb-1">Reference ID / Notes</label>
-                    <input type="text" id="pay_reference" placeholder="e.g. UPI Transaction ID or Month Paid" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs">
-                </div>
-
-                <div class="pt-2">
-                    <button type="submit" class="w-full bg-black text-white font-medium py-2.5 rounded-md text-xs hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"><i class="ph ph-check-circle"></i> Confirm Payment</button>
-                </div>
+                <div><label class="block text-[10px] font-semibold text-gray-500 mb-1">Reference ID / Notes</label><input type="text" id="pay_reference" placeholder="e.g. Month Paid or Trxn ID" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs"></div>
+                <div class="pt-2"><button type="submit" class="w-full bg-black text-white font-medium py-2.5 rounded-md text-xs hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">Confirm Payment</button></div>
             </form>
         </div>
     </div>
@@ -96,108 +76,71 @@
     <script>
         const authHeaders = { 'Authorization': `Bearer ${localStorage.getItem('scorp_token')}`, 'Content-Type': 'application/json' };
         let allStudents = [];
-        let ledgerData = [];
 
-        // 1. Fetch Data
         async function loadData() {
-            // Load Ledger
             document.getElementById('ledgerBody').innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400 animate-pulse">Syncing ledger...</td></tr>`;
             try {
                 const ledgerRes = await fetch('http://127.0.0.1:8000/api/finance/ledger/', { headers: authHeaders });
-                ledgerData = await res.json();
-                renderLedger();
+                const ledgerData = await ledgerRes.json();
+                const tbody = document.getElementById('ledgerBody');
+                
+                if(!Array.isArray(ledgerData) || ledgerData.length === 0) { 
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400">No transactions recorded yet.</td></tr>`; 
+                } else {
+                    tbody.innerHTML = ledgerData.map(t => {
+                        let mc = t.method === 'UPI' ? 'text-purple-600 bg-purple-50' : t.method === 'BANK' ? 'text-blue-600 bg-blue-50' : 'text-emerald-600 bg-emerald-50';
+                        return `<tr class="hover:bg-gray-50 transition-colors"><td class="px-5 py-4 font-mono text-gray-500">${t.date_string || t.created_at.substring(0,10)}</td><td class="px-5 py-4"><div class="font-bold text-gray-900">${t.student_name}</div><div class="text-[10px] text-gray-400 uppercase mt-0.5">${t.branch_name}</div></td><td class="px-5 py-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${mc}">${t.method}</span></td><td class="px-5 py-4 text-[11px] text-gray-600">${t.reference || '-'}</td><td class="px-5 py-4 text-right"><span class="text-base font-bold text-gray-900">₹${t.amount}</span></td></tr>`;
+                    }).join('');
+                }
             } catch(e) { document.getElementById('ledgerBody').innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">Failed to load ledger.</td></tr>`; }
 
-            // Load Students for Search Bar
             try {
                 const studentRes = await fetch('http://127.0.0.1:8000/api/students/', { headers: authHeaders });
                 allStudents = await studentRes.json();
-                
-                // Auto-Open Modal if Redirected from Profile Page
-                const urlParams = new URLSearchParams(window.location.search);
-                const targetStudentId = urlParams.get('student_id');
-                if (targetStudentId) {
-                    const targetStudent = allStudents.find(s => s.id === targetStudentId);
-                    if (targetStudent) openPaymentModal(targetStudent.id, `${targetStudent.first_name} ${targetStudent.last_name || ''}`, targetStudent.custom_fee);
-                    // Clean URL to prevent re-opening on refresh
+                const params = new URLSearchParams(window.location.search);
+                const sId = params.get('student_id');
+                if (sId) {
+                    const s = allStudents.find(x => x.id === sId);
+                    if (s) openPaymentModal(s.id, `${s.first_name} ${s.last_name || ''}`, s.custom_fee, s.outstanding_balance);
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
-            } catch(e) { console.error("Failed to load students for search."); }
+            } catch(e) { console.error("Students failed to load."); }
         }
 
-        // 2. Render Ledger Table
-        function renderLedger() {
-            const tbody = document.getElementById('ledgerBody');
-            if(ledgerData.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400">No transactions recorded yet.</td></tr>`; return; }
-
-            tbody.innerHTML = ledgerData.map(t => {
-                let methodColor = t.method === 'UPI' ? 'text-purple-600 bg-purple-50' : t.method === 'BANK' ? 'text-blue-600 bg-blue-50' : 'text-emerald-600 bg-emerald-50';
-                return `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-5 py-4 font-mono text-gray-500">${t.date_string}</td>
-                    <td class="px-5 py-4"><div class="font-bold text-gray-900">${t.student_name}</div><div class="text-[10px] text-gray-400 uppercase mt-0.5">${t.branch_name}</div></td>
-                    <td class="px-5 py-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${methodColor}">${t.method}</span></td>
-                    <td class="px-5 py-4 text-[11px] text-gray-600">${t.reference || '-'}</td>
-                    <td class="px-5 py-4 text-right"><span class="text-base font-bold text-gray-900">₹${t.amount}</span></td>
-                </tr>`;
-            }).join('');
-        }
-
-        // 3. Live Autocomplete Search Logic
         function filterStudents() {
             const input = document.getElementById('liveStudentSearch').value.toLowerCase();
-            const dropdown = document.getElementById('searchDropdown');
             const list = document.getElementById('searchResultsList');
-            
-            if (input.length < 1) { dropdown.classList.add('hidden'); return; }
+            if (input.length < 1) { document.getElementById('searchDropdown').classList.add('hidden'); return; }
 
-            const filtered = allStudents.filter(s => 
-                (s.first_name + ' ' + (s.last_name||'')).toLowerCase().includes(input) || 
-                (s.phone||'').includes(input)
-            ).slice(0, 5); // Limit to top 5 results for speed
-
-            if (filtered.length === 0) {
-                list.innerHTML = `<li class="px-4 py-3 text-xs text-gray-400">No students found.</li>`;
-            } else {
+            const filtered = allStudents.filter(s => (s.first_name + ' ' + (s.last_name||'')).toLowerCase().includes(input) || (s.phone||'').includes(input)).slice(0, 5);
+            if (filtered.length === 0) { list.innerHTML = `<li class="px-4 py-3 text-xs text-gray-400">No students found.</li>`; } 
+            else {
                 list.innerHTML = filtered.map(s => {
-                    const fullName = `${s.first_name} ${s.last_name || ''}`;
-                    return `
-                    <li onclick="openPaymentModal('${s.id}', '${fullName.replace(/'/g, "\\'")}', '${s.custom_fee||0}')" class="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors flex justify-between items-center group">
-                        <div>
-                            <div class="font-semibold text-gray-900 text-xs">${fullName}</div>
-                            <div class="text-[10px] text-gray-400 font-mono mt-0.5">${s.phone}</div>
-                        </div>
-                        <button class="opacity-0 group-hover:opacity-100 bg-black text-white text-[10px] font-bold px-2 py-1 rounded transition-opacity">Pay</button>
-                    </li>`;
+                    const fn = `${s.first_name} ${s.last_name || ''}`;
+                    const bal = s.outstanding_balance || 0;
+                    return `<li onclick="openPaymentModal('${s.id}', '${fn.replace(/'/g, "\\'")}', '${s.custom_fee||0}', '${bal}')" class="px-4 py-3 hover:bg-gray-50 cursor-pointer flex justify-between items-center group"><div><div class="font-semibold text-gray-900 text-xs">${fn}</div><div class="text-[10px] text-gray-400 font-mono mt-0.5">Due: ₹${bal}</div></div><button class="opacity-0 group-hover:opacity-100 bg-black text-white text-[10px] font-bold px-2 py-1 rounded">Pay</button></li>`;
                 }).join('');
             }
-            dropdown.classList.remove('hidden');
+            document.getElementById('searchDropdown').classList.remove('hidden');
         }
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('liveStudentSearch').contains(e.target) && !document.getElementById('searchDropdown').contains(e.target)) {
-                document.getElementById('searchDropdown').classList.add('hidden');
-            }
-        });
-
-        // 4. Modal Logic
-        function openPaymentModal(studentId, studentName, defaultFee) {
+        function openPaymentModal(id, name, fee, bal) {
             document.getElementById('searchDropdown').classList.add('hidden');
             document.getElementById('liveStudentSearch').value = '';
+            document.getElementById('pay_student_id').value = id;
+            document.getElementById('pay_student_name').value = name;
             
-            document.getElementById('pay_student_id').value = studentId;
-            document.getElementById('pay_student_name').value = studentName;
-            document.getElementById('pay_amount').value = defaultFee;
-            document.getElementById('pay_method').value = 'CASH';
-            document.getElementById('pay_reference').value = '';
+            const b = parseFloat(bal) || 0;
+            const f = parseFloat(fee) || 0;
+            document.getElementById('uiBaseFee').innerText = `₹${f}`;
+            document.getElementById('uiPendingDue').innerText = `₹${b}`;
+            document.getElementById('pay_amount').value = b > 0 ? b : f;
             
             document.getElementById('paymentModal').classList.remove('hidden');
         }
 
         function closePaymentModal() { document.getElementById('paymentModal').classList.add('hidden'); }
 
-        // 5. Submit Payment
         document.getElementById('paymentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
@@ -212,43 +155,21 @@
             btn.innerHTML = 'Processing...';
 
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/finance/ledger/', { 
-                    method: 'POST', 
-                    headers: authHeaders, 
-                    body: JSON.stringify(payload) 
-                });
+                const res = await fetch('http://127.0.0.1:8000/api/finance/ledger/', { method: 'POST', headers: authHeaders, body: JSON.stringify(payload) });
+                const data = await res.json();
                 
-                if (res.ok) {
-                    closePaymentModal();
-                    loadData(); // Refresh ledger
-                } else {
-                    const data = await res.json();
-                    alert(data.error || "Failed to process payment.");
+                if (res.ok) { 
+                    closePaymentModal(); 
+                    loadData(); 
+                } else { 
+                    alert("BACKEND REJECTED: " + (data.error || "Unknown Error")); 
                 }
-            } catch (err) { alert("Network error. Could not reach server."); }
-            
+            } catch (err) { 
+                alert("SERVER CRASH: Please check your Python terminal for the exact error line."); 
+            }
             btn.innerHTML = originalText;
         });
 
-        // 6. Export to Excel
-        function exportLedger() {
-            if(ledgerData.length === 0) return alert("No data to export.");
-            const exportData = ledgerData.map(t => ({
-                "Date": t.date_string,
-                "Student": t.student_name,
-                "Branch": t.branch_name,
-                "Method": t.method,
-                "Reference": t.reference || '',
-                "Amount (₹)": t.amount,
-                "Processed By": t.processed_by
-            }));
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Financial Ledger");
-            XLSX.writeFile(wb, `Scorpion_Academy_Ledger.xlsx`);
-        }
-
-        // Init
         loadData();
     </script>
 </body>

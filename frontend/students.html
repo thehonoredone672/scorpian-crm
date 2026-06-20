@@ -139,14 +139,20 @@
 
                     <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col">
                         <h4 class="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-4 flex items-center gap-1.5"><i class="ph ph-currency-inr text-base"></i> Fee Ledger</h4>
-                        <div class="space-y-3 mb-4">
+                        <div class="space-y-4 mb-4 border-b border-gray-100 pb-4">
                             <div class="flex justify-between items-center text-xs"><span class="text-gray-500 font-medium">Monthly Due:</span><span class="font-bold text-gray-900" id="uiFeeDue">₹0</span></div>
                             
                             <div class="flex justify-between items-center text-xs">
-                                <span class="text-gray-500 font-medium">Months Pending:</span>
-                                <input type="number" id="pPendingMonths" class="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs text-right font-bold" value="0" min="0">
+                                <span class="text-gray-500 font-medium">Outstanding Due (₹):</span>
+                                <input type="number" id="pOutstandingBalance" class="w-20 px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded-md text-xs text-right font-black focus:ring-red-500" value="0" min="0">
                             </div>
                         </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-2">Recent Payments</h5>
+                            <div id="uiRecentPayments" class="space-y-1"></div>
+                        </div>
+
                         <div class="mt-auto">
                             <button onclick="window.location.href='accounting.html?student_id=' + document.getElementById('pId').value" class="w-full border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium py-2 rounded-md text-[11px] transition-colors flex items-center justify-center gap-1.5"><i class="ph ph-receipt"></i> Log New Payment</button>
                         </div>
@@ -205,7 +211,7 @@
         function renderStudents() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const sortType = document.getElementById('mainSort').value;
-            let filtered = activeStudents.filter(s => (s.first_name + ' ' + s.last_name).toLowerCase().includes(query) || (s.phone||'').includes(query));
+            let filtered = activeStudents.filter(s => (s.first_name + ' ' + (s.last_name||'')).toLowerCase().includes(query) || (s.phone||'').includes(query));
             filtered = globalSort(filtered, sortType);
 
             const tbody = document.getElementById('studentTableBody');
@@ -215,9 +221,10 @@
                 const today = new Date();
                 const past10th = today.getDate() > 10;
                 let autoStatus = s.status || 'ACTIVE';
+                const balance = parseFloat(s.outstanding_balance || 0);
                 
-                // SMART FLAG: Automatically display PENDING if past the 10th with months owed
-                if (autoStatus !== 'INACTIVE' && s.pending_months > 0 && past10th) {
+                // SMART FLAG: Automatically display PENDING if past the 10th with ANY money owed
+                if (autoStatus !== 'INACTIVE' && balance > 0 && past10th) {
                     autoStatus = 'PENDING';
                 }
 
@@ -243,12 +250,13 @@
             if (activeStudents.length === 0) return alert("No students to export.");
             const sortType = document.getElementById('mainSort').value;
             const query = document.getElementById('searchInput').value.toLowerCase();
-            let exportArr = globalSort(activeStudents.filter(s => (s.first_name + ' ' + s.last_name).toLowerCase().includes(query)), sortType);
+            let exportArr = globalSort(activeStudents.filter(s => (s.first_name + ' ' + (s.last_name||'')).toLowerCase().includes(query)), sortType);
 
             const exportData = exportArr.map(s => {
                 const today = new Date();
                 let autoStatus = s.status || 'ACTIVE';
-                if (autoStatus !== 'INACTIVE' && s.pending_months > 0 && today.getDate() > 10) autoStatus = 'PENDING';
+                const balance = parseFloat(s.outstanding_balance || 0);
+                if (autoStatus !== 'INACTIVE' && balance > 0 && today.getDate() > 10) autoStatus = 'PENDING';
 
                 return {
                     "First Name": s.first_name, "Last Name": s.last_name, "Branch": s.branch_name, "Phone": s.phone,
@@ -256,8 +264,8 @@
                     "Enrolled Programs": s.enrolled_sports ? s.enrolled_sports.join(', ') : 'None',
                     "Current Belt": s.current_belt, 
                     "Status": autoStatus, 
-                    "Months Pending": s.pending_months || 0,
-                    "Monthly Fee (₹)": s.custom_fee || 0
+                    "Outstanding Balance (₹)": balance,
+                    "Base Monthly Fee (₹)": s.custom_fee || 0
                 };
             });
             const ws = XLSX.utils.json_to_sheet(exportData);
@@ -279,7 +287,7 @@
                 age: document.getElementById('s_age').value, gender: document.getElementById('s_gender').value,
                 blood_type: document.getElementById('s_blood').value, address: document.getElementById('s_address').value,
                 phone: document.getElementById('s_phone').value, custom_fee: document.getElementById('s_fee').value,
-                pending_months: 0, // Starts at 0
+                outstanding_balance: 0, // Starts at 0
                 style: checkedSports.join(',')
             };
             try {
@@ -302,7 +310,7 @@
             document.getElementById('pFee').value = student.custom_fee || 0;
             document.getElementById('pStatus').value = student.status || 'ACTIVE';
             document.getElementById('uiFeeDue').innerText = `₹${student.custom_fee || 0}`;
-            document.getElementById('pPendingMonths').value = student.pending_months || 0;
+            document.getElementById('pOutstandingBalance').value = student.outstanding_balance || 0;
             
             if(document.getElementById('pBranch')) document.getElementById('pBranch').value = student.branch_name || 'COIMBATORE';
             
@@ -369,6 +377,29 @@
             } catch (e) {
                 attContainer.innerHTML = `<div class="text-xs text-red-500 text-center py-2">Error loading stats</div>`;
             }
+
+            // Fetch Live Payment History for this Student
+            const paymentsContainer = document.getElementById('uiRecentPayments');
+            paymentsContainer.innerHTML = '<div class="text-[10px] text-gray-400 animate-pulse">Checking records...</div>';
+            try {
+                const finRes = await fetch('http://127.0.0.1:8000/api/finance/ledger/', { headers: authHeaders });
+                const allLedger = await finRes.json();
+                
+                const myPayments = allLedger.filter(t => t.student_id === student.id).slice(0, 3);
+                
+                if (myPayments.length === 0) {
+                    paymentsContainer.innerHTML = '<div class="text-[10px] text-gray-400 italic">No payments logged yet.</div>';
+                } else {
+                    paymentsContainer.innerHTML = myPayments.map(p => `
+                        <div class="flex justify-between items-center text-[10px] border border-gray-100 bg-gray-50 px-2 py-1.5 rounded">
+                            <span class="font-mono text-gray-500">${p.date_string || p.created_at.substring(0,10)}</span>
+                            <span class="font-bold text-green-600 bg-green-50 px-1 rounded">+₹${p.amount}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                paymentsContainer.innerHTML = '<div class="text-[10px] text-red-400">Failed to load history.</div>';
+            }
         }
 
         async function updateStudentProfile() {
@@ -384,7 +415,7 @@
                 address: document.getElementById('pAddress').value,
                 custom_fee: document.getElementById('pFee').value, 
                 status: document.getElementById('pStatus').value,
-                pending_months: document.getElementById('pPendingMonths').value, // Tracks the penalty
+                outstanding_balance: document.getElementById('pOutstandingBalance').value,
                 style: checkedSports.join(',')
             };
             if(document.getElementById('pBranch')) payload.branch_name = document.getElementById('pBranch').value;
